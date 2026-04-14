@@ -56,6 +56,7 @@ export function RegisterForm() {
         name: values.name,
         email: values.email,
         password: values.password,
+        role: "jobSeeker",
       });
       toast.success("Registration successful! Please login.");
       router.push("/login");
@@ -158,7 +159,7 @@ export function RegisterForm() {
         <CardFooter className="justify-center">
           <p className="text-muted-foreground text-sm">
             Already have an account?{" "}
-            <Link href="/login" className="text-foreground font-medium underline underline-offset-4">
+            <Link href="/signin" className="text-foreground font-medium underline underline-offset-4">
               Sign in
             </Link>
           </p>

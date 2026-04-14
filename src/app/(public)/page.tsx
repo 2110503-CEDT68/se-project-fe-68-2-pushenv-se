@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Footer } from "@/components/layout/Footer";
-import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -22,8 +21,6 @@ const features = [
 export default function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col">
-      <Navbar />
-
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-20 px-6 py-24">
         {/* Hero */}
         <section className="flex flex-col items-start gap-7">
@@ -35,10 +32,10 @@ export default function LandingPage() {
           </p>
           <div className="flex gap-3">
             <Button size="lg" asChild>
-              <Link href="/register">Get started</Link>
+              <Link href="/signup">Get started</Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
-              <Link href="/login">Sign in</Link>
+              <Link href="/signin">Sign in</Link>
             </Button>
           </div>
         </section>
