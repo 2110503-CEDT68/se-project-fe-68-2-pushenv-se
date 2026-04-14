@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -23,7 +24,13 @@ export function AuthCard({
   footerLink: { href: string; label: string };
 }) {
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm items-center px-4 py-12">
+    <main className="mx-auto flex min-h-screen max-w-sm flex-col items-start justify-center px-4 py-12">
+      <Button variant="ghost" size="sm" className="mb-4 -ml-2" asChild>
+        <Link href="/" className="flex items-center gap-1 text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-4 w-4" />
+          Back to Home
+        </Link>
+      </Button>
       <Card className="w-full">
         <CardHeader>
           <CardTitle>{title}</CardTitle>
