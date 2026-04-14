@@ -11,35 +11,49 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { api } from "@/lib/api";
-import { setToken } from "@/lib/auth";
+import { useLogin } from "@/hooks/auth/useLogin";
+import { jwtDecode } from "jwt-decode";
 import type { ApiResponse } from "@/types/api";
 
 const schema = z.object({
-  email: z.string().email("Invalid email"),
-  password: z.string().min(1, "Password is required"),
+  email: z.string().email("Invalid email").min(1, "Email is required").regex(/^[\x20-\x7E]+$/, { message: "Only English letters and standard symbols are allowed" }),
+  password: z.string().min(1, "Password is required").regex(/^[\x20-\x7E]+$/, { message: "Only English letters and standard symbols are allowed" }),
 });
 
 type FormValues = z.infer<typeof schema>;
 
 export function LoginForm() {
   const router = useRouter();
-  const form = useForm<FormValues>({ resolver: zodResolver(schema) });
+  const loginMutation = useLogin();
+  const form = useForm<FormValues>({ 
+    resolver: zodResolver(schema),
+    defaultValues: {
+      email: "",
+      password: "",
+    }
+  });
 
   async function onSubmit(values: FormValues) {
     try {
-      const res = await api.post<ApiResponse<{ token: string }>>("/auth/login", {
-        email: values.email,
-        password: values.password,
-      });
-      setToken(res.data.token);
-      router.push("/");
+      const data = await loginMutation.mutateAsync(values);
+      
+      // Decode role and redirect
+      const decoded: { role: string } = jwtDecode(data.token);
+      const role = decoded.role;
+
+      if (role === "systemAdmin") {
+        router.push("/admin/dashboard");
+      } else if (role === "companyUser") {
+        router.push("/company/dashboard");
+      } else {
+        router.push("/events");
+      }
+      
+      toast.success("Welcome back!");
     } catch (err: unknown) {
-      const message =
-        err && typeof err === "object" && "message" in err
-          ? String((err as { message: unknown }).message)
-          : "Login failed";
-      toast.error(message);
+      const errorObj = err as { statusCode?: number; message?: string };
+      const message = errorObj?.message || "Login failed";
+      toast.error(message === "Invalid credentials" ? "Invalid email or password" : message);
     }
   }
 

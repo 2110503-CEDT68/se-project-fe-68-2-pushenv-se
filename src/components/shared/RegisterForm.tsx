@@ -56,10 +56,9 @@ export function RegisterForm() {
         name: values.name,
         email: values.email,
         password: values.password,
-        role: "jobSeeker",
       });
       toast.success("Registration successful! Please login.");
-      router.push("/login");
+      router.push("/signin");
     } catch (err: unknown) {
       const errorObj = err as { statusCode?: number; message?: string };
       // Check if it's a 409 Conflict error
