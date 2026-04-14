@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -11,15 +12,21 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { api } from "@/lib/api";
-import { setToken } from "@/lib/auth";
-import type { ApiResponse } from "@/types/api";
+import { useJobSeekerRegister } from "@/hooks/auth/useJobSeekerRegister";
 
 const schema = z
   .object({
-    name: z.string().min(1, "Name is required"),
-    email: z.string().email("Invalid email"),
-    password: z.string().min(8, "Password must be at least 8 characters"),
+    name: z
+      .string()
+      .min(1, { message: "Name is required" })
+      .regex(/^[a-zA-Z0-9\s-']+$/, { message: "Name must contain only English letters, numbers, spaces, hyphens, or apostrophes" }),
+    email: z
+      .string()
+      .regex(/^(?!\s)[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?<!\s)$/, { message: "Invalid email format" }),
+    password: z
+      .string()
+      .min(8, { message: "Password must be at least 8 characters" })
+      .regex(/^[\x20-\x7E]+$/, { message: "Password must contain only English characters and valid symbols" }),
     confirmPassword: z.string(),
   })
   .refine((d) => d.password === d.confirmPassword, {
@@ -31,28 +38,47 @@ type FormValues = z.infer<typeof schema>;
 
 export function RegisterForm() {
   const router = useRouter();
-  const form = useForm<FormValues>({ resolver: zodResolver(schema) });
+  const form = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+    },
+  });
+
+  const { mutateAsync: registerUser, isPending } = useJobSeekerRegister();
 
   async function onSubmit(values: FormValues) {
     try {
-      const res = await api.post<ApiResponse<{ token: string }>>("/auth/register", {
+      await registerUser({
         name: values.name,
         email: values.email,
         password: values.password,
       });
-      setToken(res.data.token);
-      router.push("/");
+      toast.success("Registration successful! Please login.");
+      router.push("/login");
     } catch (err: unknown) {
-      const message =
-        err && typeof err === "object" && "message" in err
-          ? String((err as { message: unknown }).message)
-          : "Registration failed";
-      toast.error(message);
+      const errorObj = err as { statusCode?: number; message?: string };
+      // Check if it's a 409 Conflict error
+      if (errorObj?.statusCode === 409 || errorObj?.message?.toLowerCase().includes("email already exists")) {
+        form.setError("email", { message: "Email already exists" });
+      } else {
+        const message = errorObj?.message || "Registration failed";
+        toast.error(message);
+      }
     }
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm items-center px-4 py-12">
+    <main className="mx-auto flex min-h-screen max-w-sm flex-col items-start justify-center px-4 py-12">
+      <Button variant="ghost" size="sm" className="mb-4 -ml-2" asChild>
+        <Link href="/" className="flex items-center gap-1 text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-4 w-4" />
+          Back to Home
+        </Link>
+      </Button>
       <Card className="w-full">
         <CardHeader>
           <CardTitle>Create an account</CardTitle>
@@ -121,9 +147,9 @@ export function RegisterForm() {
               <Button
                 type="submit"
                 className="mt-2 w-full"
-                disabled={form.formState.isSubmitting}
+                disabled={form.formState.isSubmitting || isPending}
               >
-                {form.formState.isSubmitting ? "Creating account…" : "Create account"}
+                {form.formState.isSubmitting || isPending ? "Creating account…" : "Create account"}
               </Button>
             </form>
           </Form>
