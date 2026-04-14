@@ -33,7 +33,7 @@ export async function apiFetch<T>(path: string, options: FetchOptions = {}): Pro
 
   if (response.status === 401 && typeof window !== "undefined") {
     clearToken();
-    window.location.href = "/login";
+    window.location.href = "/signin";
   }
 
   const json = await response.json();

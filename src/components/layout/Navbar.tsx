@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/shared/StatusBadge";
 
-export function Navbar({ role }: { role?: "user" | "company" | "admin" }) {
+export function Navbar() {
   return (
     <header className="bg-background/95 backdrop-blur-sm shadow-sm">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
@@ -14,12 +13,11 @@ export function Navbar({ role }: { role?: "user" | "company" | "admin" }) {
             <Link href="/">Home</Link>
           </Button>
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/login">Sign in</Link>
+            <Link href="/signin">Sign in</Link>
           </Button>
           <Button size="sm" asChild>
-            <Link href="/register">Sign up</Link>
+            <Link href="/signup">Sign up</Link>
           </Button>
-          {role ? <StatusBadge status={role} /> : null}
         </nav>
       </div>
     </header>
