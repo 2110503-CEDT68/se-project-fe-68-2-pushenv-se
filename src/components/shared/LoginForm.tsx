@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { jwtDecode } from "jwt-decode";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -16,15 +17,28 @@ import { setToken } from "@/lib/auth";
 import type { ApiResponse } from "@/types/api";
 
 const schema = z.object({
-  email: z.string().email("Invalid email"),
-  password: z.string().min(1, "Password is required"),
+  email: z
+    .string()
+    .min(1, "Email is required")
+    .email("Invalid email")
+    .regex(/^[\x20-\x7E]+$/, { message: "Only English letters and standard symbols are allowed" }),
+  password: z
+    .string()
+    .min(1, "Password is required")
+    .regex(/^[\x20-\x7E]+$/, { message: "Only English letters and standard symbols are allowed" }),
 });
 
 type FormValues = z.infer<typeof schema>;
 
 export function LoginForm() {
   const router = useRouter();
-  const form = useForm<FormValues>({ resolver: zodResolver(schema) });
+  const form = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
   async function onSubmit(values: FormValues) {
     try {
@@ -32,14 +46,26 @@ export function LoginForm() {
         email: values.email,
         password: values.password,
       });
+
       setToken(res.data.token);
-      router.push("/");
+
+      // Decode role and redirect
+      const decoded: { role: string } = jwtDecode(res.data.token);
+      const role = decoded.role;
+
+      if (role === "systemAdmin") {
+        router.push("/admin/dashboard");
+      } else if (role === "companyUser") {
+        router.push("/company/dashboard");
+      } else {
+        router.push("/events");
+      }
+
+      toast.success("Welcome back!");
     } catch (err: unknown) {
-      const message =
-        err && typeof err === "object" && "message" in err
-          ? String((err as { message: unknown }).message)
-          : "Login failed";
-      toast.error(message);
+      const errorObj = err as { message?: string };
+      const message = errorObj?.message || "Login failed";
+      toast.error(message === "Invalid credentials" ? "Invalid email or password" : message);
     }
   }
 
@@ -82,11 +108,7 @@ export function LoginForm() {
                 )}
               />
 
-              <Button
-                type="submit"
-                className="mt-2 w-full"
-                disabled={form.formState.isSubmitting}
-              >
+              <Button type="submit" className="mt-2 w-full" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting ? "Signing in…" : "Continue"}
               </Button>
             </form>
