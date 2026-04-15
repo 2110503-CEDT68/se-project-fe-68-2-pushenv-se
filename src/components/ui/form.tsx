@@ -100,7 +100,7 @@ function FormControl({ ...props }: React.ComponentProps<"div">) {
       ? formDescriptionId
       : `${formDescriptionId} ${formMessageId}`,
     "aria-invalid": !!error,
-  });
+  } as React.Attributes);
 }
 
 function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
