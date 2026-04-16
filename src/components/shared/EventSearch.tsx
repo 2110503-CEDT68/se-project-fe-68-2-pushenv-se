@@ -1,27 +1,23 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export default function EventSearch() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("search") || "");
 
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (query) {
-        params.set("search", query);
-      } else {
-        params.delete("search");
-      }
-      params.set("page", "1"); // Always reset to page 1 on query change
-      router.push(`/events?${params.toString()}`);
-    }, 300);
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [query, router, searchParams]);
+  const handleSearch = () => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (query) {
+      params.set("search", query);
+    } else {
+      params.delete("search");
+    }
+    params.set("page", "1"); // Always reset to page 1 on query change
+    router.push(`/events?${params.toString()}`);
+  };
 
   return (
     <div className="w-[600px] min-h-10 px-4 py-2.5 bg-white rounded-lg shadow-sm outline outline-1 outline-slate-200 inline-flex justify-start items-center gap-3 overflow-hidden">
@@ -34,12 +30,16 @@ export default function EventSearch() {
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               (e.target as HTMLInputElement).blur();
+              handleSearch();
             }
           }}
           className="w-full bg-transparent outline-none text-black text-sm font-normal font-sans placeholder:text-slate-400"
         />
       </div>
-      <div className="w-5 p-0.5 inline-flex flex-col justify-center items-center">
+      <div 
+        className="w-5 p-0.5 inline-flex flex-col justify-center items-center cursor-pointer"
+        onClick={handleSearch}
+      >
         <div className="w-4 h-4 relative overflow-hidden">
           <svg
             xmlns="http://www.w3.org/2000/svg"

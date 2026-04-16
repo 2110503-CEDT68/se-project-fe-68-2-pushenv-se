@@ -1,6 +1,7 @@
 import EventSearch from "@/components/shared/EventSearch";
 import Pagination from "@/components/shared/Pagination";
 import { Suspense } from "react";
+import Link from "next/link";
 
 interface Event {
   id: string;
@@ -122,8 +123,14 @@ export default async function EventExplorerPage({
       <div className="self-stretch px-28 py-10 flex flex-col justify-start items-start gap-2.5 overflow-hidden">
         <div className="w-full max-w-[1200px] mx-auto flex flex-col justify-start items-center gap-8">
           <div className="self-stretch text-center">
-            <span className="text-black text-lg font-medium font-sans">{total}</span>
-            <span className="text-black text-lg font-normal font-sans"> Events match your preferences</span>
+            {search ? (
+              <>
+                <span className="text-black text-lg font-medium font-sans">{total}</span>
+                <span className="text-black text-lg font-normal font-sans"> Events match your preferences</span>
+              </>
+            ) : (
+              <span className="text-black text-lg font-semibold font-sans uppercase tracking-tight">All Events</span>
+            )}
           </div>
 
           <div className="self-stretch flex flex-col justify-start items-start gap-6">
@@ -150,9 +157,9 @@ export default async function EventExplorerPage({
                         </div>
                       </div>
                       <div className="w-32 flex flex-col justify-center items-center">
-                        <div className="px-6 py-2.5 bg-slate-100 rounded-full cursor-pointer hover:bg-slate-200 transition-colors">
+                        <Link href={`/events/${event.id}`} className="px-6 py-2.5 bg-slate-100 rounded-full cursor-pointer hover:bg-slate-200 transition-colors">
                           <div className="text-center text-slate-900 text-sm font-medium font-sans">See details</div>
-                        </div>
+                        </Link>
                       </div>
                     </div>
                   </div>
