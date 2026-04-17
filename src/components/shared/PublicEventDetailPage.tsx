@@ -93,14 +93,8 @@ export function PublicEventDetailPage({ eventId }: { eventId: string }) {
 
     async function loadEvent() {
       try {
-        const listRes = await api.get<ApiResponse<PublishedEventsPayload>>("/events", {
-          params: { page: 1, limit: 100 },
-        });
-        const foundEvent = listRes.data.events.find(item => item.id === eventId);
-
-        if (!foundEvent) {
-          throw new Error("Event not found");
-        }
+        const res = await api.get<ApiResponse<PublicEventDetail>>(`/events/${eventId}`);
+        const foundEvent = res.data;
 
         let companies: PublicEventCompany[] = [];
 
@@ -110,13 +104,14 @@ export function PublicEventDetailPage({ eventId }: { eventId: string }) {
           );
           companies = companiesRes.data;
         } catch {
-          toast.error("Failed to load company list");
+          // If companies fail, we still show the event
         }
 
         if (active) {
           setEvent({ ...foundEvent, companies });
         }
-      } catch {
+      } catch (err: any) {
+        console.error("Load Event Error:", err);
         toast.error("Failed to load event details");
       } finally {
         if (active) {

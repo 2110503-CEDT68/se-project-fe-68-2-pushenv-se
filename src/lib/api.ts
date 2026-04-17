@@ -1,6 +1,7 @@
 import { clearToken, getToken } from "@/lib/auth";
 
-const BASE_URL = `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"}/api/v1`;
+const rawBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+const BASE_URL = rawBase.endsWith("/api/v1") ? rawBase : `${rawBase}/api/v1`;
 
 type FetchOptions = RequestInit & {
   params?: Record<string, string | number | boolean | undefined>;
