@@ -112,7 +112,7 @@ export function Navbar() {
                 <Link href="/events">Events</Link>
               </Button>
               <Button variant="ghost" size="sm" asChild>
-                <Link href="/company">Company</Link>
+                <Link href="/companies">Company</Link>
               </Button>
             </>
           ) : null}
