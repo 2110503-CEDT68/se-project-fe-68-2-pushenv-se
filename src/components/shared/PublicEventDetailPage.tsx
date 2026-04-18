@@ -9,75 +9,20 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { getToken } from "@/lib/auth";
+import { resolveAssetUrl, formatDateRange, formatTime } from "@/lib/event-utils";
 import type { ApiResponse } from "@/types/api";
-
-type PublicEventSummary = {
-  id: string;
-  name: string;
-  description: string;
-  location: string;
-  startDate: string;
-  endDate: string;
-  banner?: string | null;
-  isPublished: boolean;
-  createdAt: string;
-  updatedAt: string;
-};
-
-type PublicEventCompany = {
-  company: {
-    id: string;
-    description?: string | null;
-    logo?: string | null;
-    website?: string | null;
-    companyUser: { name: string; email: string };
-  };
-};
+import type {
+  PublicEventSummary,
+  PublicEventCompany,
+  EventRegistrationStatusPayload,
+  AuthTokenPayload,
+} from "@/types/event";
 
 type PublicEventDetail = PublicEventSummary & {
+  /** Set client-side after a successful register call; not sent by the server. */
   viewerRegistered?: boolean;
   companies: PublicEventCompany[];
 };
-
-type PublishedEventsPayload = {
-  events: PublicEventSummary[];
-  total: number;
-  page: number;
-  limit: number;
-};
-
-type EventRegistrationStatusPayload = {
-  registered: boolean;
-};
-
-type AuthTokenPayload = {
-  role?: string;
-};
-
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
-
-function resolveAssetUrl(value?: string | null) {
-  if (!value) return null;
-  return value.startsWith("http") ? value : `${BASE_URL}${value}`;
-}
-
-function formatDate(value: string) {
-  return new Date(value).toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-function formatDateRange(startValue: string, endValue: string) {
-  const start = formatDate(startValue);
-  const end = formatDate(endValue);
-  return start === end ? start : `${start} - ${end}`;
-}
-
-function formatTime() {
-  return "All day";
-}
 
 export function PublicEventDetailPage({ eventId }: { eventId: string }) {
   const [event, setEvent] = useState<PublicEventDetail | null>(null);
@@ -283,7 +228,7 @@ export function PublicEventDetailPage({ eventId }: { eventId: string }) {
               </div>
               <div className="flex items-center gap-2">
                 <Clock3 className="h-5 w-5 shrink-0" />
-                <span>{formatTime()}</span>
+                <span>{formatTime(event.startDate)}</span>
               </div>
             </div>
 

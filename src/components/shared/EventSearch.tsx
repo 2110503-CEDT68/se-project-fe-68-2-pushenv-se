@@ -3,7 +3,11 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
-export default function EventSearch() {
+interface EventSearchProps {
+  basePath?: string;
+}
+
+export default function EventSearch({ basePath = "/events" }: EventSearchProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("search") || "");
@@ -16,7 +20,7 @@ export default function EventSearch() {
       params.delete("search");
     }
     params.set("page", "1"); // Always reset to page 1 on query change
-    router.push(`/events?${params.toString()}`);
+    router.push(`${basePath}?${params.toString()}`);
   };
 
   return (
@@ -36,7 +40,7 @@ export default function EventSearch() {
           className="w-full bg-transparent outline-none text-black text-sm font-normal font-sans placeholder:text-slate-400"
         />
       </div>
-      <div 
+      <div
         className="w-5 p-0.5 inline-flex flex-col justify-center items-center cursor-pointer"
         onClick={handleSearch}
       >

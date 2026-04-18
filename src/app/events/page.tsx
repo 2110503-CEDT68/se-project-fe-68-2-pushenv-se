@@ -27,7 +27,7 @@ async function getEvents(search?: string, page: number = 1, limit: number = 10) 
     const res = await api.get<BaseApiResponse<PublishedEventsPayload>>("/events", {
       params: { search, page, limit },
       cache: "no-store",
-    } as any); // Cast for cache as apiFetch might not support it in all types yet
+    });
 
     return res.data;
   } catch (error) {
@@ -89,8 +89,8 @@ export default async function EventExplorerPage({
           <div className="self-stretch flex flex-col justify-start items-start gap-6">
             {events && events.length > 0 ? (
               <>
-                {events.map((event: Event, index: number) => (
-                  <div key={event.id || index} className="self-stretch px-14 py-8 bg-white rounded-xl outline outline-1 outline-offset-[-1px] outline-slate-200 inline-flex justify-start items-center gap-12 overflow-hidden hover:shadow-md transition-shadow">
+                {events.map((event: Event) => (
+                  <div key={event.id} className="self-stretch px-14 py-8 bg-white rounded-xl outline outline-1 outline-offset-[-1px] outline-slate-200 inline-flex justify-start items-center gap-12 overflow-hidden hover:shadow-md transition-shadow">
                     <div className="flex justify-start items-center gap-12 w-full">
                       <img 
                         className="w-48 h-48 rounded-lg object-contain" 

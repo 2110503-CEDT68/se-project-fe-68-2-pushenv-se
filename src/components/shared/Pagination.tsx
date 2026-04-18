@@ -6,19 +6,20 @@ interface PaginationProps {
   total: number;
   limit: number;
   currentPage: number;
+  basePath?: string;
 }
 
-export default function Pagination({ total, limit, currentPage }: PaginationProps) {
+export default function Pagination({ total, limit, currentPage, basePath = "/events" }: PaginationProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+
   const totalPages = Math.ceil(total / limit);
   if (totalPages <= 1) return null;
 
   const handlePageChange = (page: number) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", page.toString());
-    router.push(`/events?${params.toString()}`);
+    router.push(`${basePath}?${params.toString()}`);
   };
 
   const renderPageNumbers = () => {
