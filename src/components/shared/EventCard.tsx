@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { resolveAssetUrl } from "@/lib/event-utils";
 
 export interface EventType {
   id: string;
@@ -16,7 +17,7 @@ export default function EventCard({ event }: { event: EventType }) {
       <div className="flex justify-start items-center gap-12 w-full flex-col md:flex-row">
         <img 
           className="w-48 h-48 rounded-lg object-contain" 
-          src={event.banner || "https://placehold.co/200x200?text=Event"} 
+          src={resolveAssetUrl(event.banner) || "https://placehold.co/200x200?text=Event"} 
           alt={event.name} 
         />
         <div className="flex-1 inline-flex flex-col justify-start items-start gap-4">
