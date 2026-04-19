@@ -92,7 +92,7 @@ export function ProfilePage() {
   useEffect(() => {
     async function fetchProfile() {
       try {
-        const res = await api.get<ApiResponse<UserProfile>>("/users/me");
+        const res = await api.get<ApiResponse<UserProfile>>("/auth/me");
         setProfile(res.data);
         setName(res.data.name);
         setPhone(res.data.phone ?? "");
@@ -168,7 +168,7 @@ export function ProfilePage() {
     formData.append("avatar", file);
     try {
       const res = await api.put<ApiResponse<UserProfile>>(
-        "/users/me",
+        "/auth/me",
         formData,
       );
       setProfile(res.data);
