@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -31,6 +32,9 @@ const schema = z
       .min(8, { message: "Password must be at least 8 characters" })
       .regex(/^[\x20-\x7E]+$/, { message: "Password must contain only English characters and valid symbols" }),
     confirmPassword: z.string(),
+    consent: z.literal(true, {
+      message: "You must accept the Privacy Policy",
+    }),
   })
   .refine((d) => d.password === d.confirmPassword, {
     message: "Passwords do not match",
@@ -41,6 +45,13 @@ type FormValues = z.infer<typeof schema>;
 
 export function RegisterForm() {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+  const [hasReadPolicy, setHasReadPolicy] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -48,6 +59,7 @@ export function RegisterForm() {
       email: "",
       password: "",
       confirmPassword: "",
+      consent: undefined as any, // force the user to check it
     },
   });
 
@@ -143,6 +155,41 @@ export function RegisterForm() {
                       <Input type="password" placeholder="Repeat password" {...field} />
                     </FormControl>
                     <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="consent"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <input
+                      id="consent-checkbox"
+                      type="checkbox"
+                      disabled={!mounted ? undefined : !hasReadPolicy}
+                      className="h-4 w-4 shrink-0 rounded-sm border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 mt-1 accent-primary"
+                      checked={field.value === true}
+                      onChange={(e) => field.onChange(e.target.checked)}
+                    />
+                    <div className="space-y-1 leading-none">
+                      <FormLabel htmlFor="consent-checkbox" className={!hasReadPolicy ? "text-muted-foreground" : "text-foreground"}>
+                        I agree to the{" "}
+                        <a
+                          href="/privacy"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => setHasReadPolicy(true)}
+                          className="text-primary font-medium underline underline-offset-4 hover:text-primary/80"
+                        >
+                          Privacy Policy
+                        </a>
+                      </FormLabel>
+                      <CardDescription className="text-xs mt-1.5 block">
+                        {!hasReadPolicy ? "You must click the link to read the policy before checking this box." : "Thank you for reading the policy."}
+                      </CardDescription>
+                      <FormMessage />
+                    </div>
                   </FormItem>
                 )}
               />
