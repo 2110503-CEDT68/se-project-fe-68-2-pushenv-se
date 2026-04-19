@@ -41,7 +41,8 @@ export default async function EventExplorerPage({
   const params = await searchParams;
   const search = params.search;
   const page = params.page;
-  const currentPage = Math.max(1, parseInt(page || "1"));
+  const parsedPage = parseInt(page || "1");
+  const currentPage = isNaN(parsedPage) ? 1 : Math.max(1, parsedPage);
   const limit = 10;
 
   const { events, total } = await getEvents(search, currentPage, limit);
