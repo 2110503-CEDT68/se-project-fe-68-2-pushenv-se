@@ -24,8 +24,9 @@ export function useCompany(companyId: string) {
     try {
       const res = await api.get<ApiResponse<CompanyDetail>>(`/companies/${companyId}`);
       setCompany(res.data);
-    } catch (err: any) {
-      setError(err.message || "Failed to load company details");
+    } catch (err: unknown) {
+      const message = err && typeof err === "object" && "message" in err ? String((err as { message: unknown }).message) : "Failed to load company details";
+      setError(message);
       setCompany(null);
     } finally {
       setLoading(false);

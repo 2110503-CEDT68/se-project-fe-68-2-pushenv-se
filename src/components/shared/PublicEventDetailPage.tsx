@@ -64,7 +64,7 @@ export function PublicEventDetailPage({ eventId }: { eventId: string }) {
         if (active) {
           setEvent({ ...foundEvent, companies });
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Load Event Error:", err);
         toast.error("Failed to load event details");
       } finally {

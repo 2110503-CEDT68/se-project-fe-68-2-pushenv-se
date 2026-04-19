@@ -33,8 +33,9 @@ export function useCompanies() {
         setCompanies(res.data.data);
         setTotal(res.data.total);
         setTotalPages(res.data.totalPages);
-      } catch (err: any) {
-        setError(err.message || "Failed to load companies");
+      } catch (err: unknown) {
+        const message = err && typeof err === "object" && "message" in err ? String((err as { message: unknown }).message) : "Failed to load companies";
+        setError(message);
         setCompanies([]);
       } finally {
         setLoading(false);
