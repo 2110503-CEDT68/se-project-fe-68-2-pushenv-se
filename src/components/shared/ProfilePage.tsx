@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Camera, Pencil, X } from "lucide-react";
+import { Camera, KeyRound, Pencil, Shield, Trash2, User, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,12 @@ const ROLE_LABELS: Record<string, string> = {
   systemAdmin: "Admin",
 };
 
+const ROLE_COLORS: Record<string, string> = {
+  jobSeeker: "bg-violet-100 text-violet-700",
+  companyUser: "bg-blue-100 text-blue-700",
+  systemAdmin: "bg-amber-100 text-amber-700",
+};
+
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
 function DeleteAccountModal({
@@ -37,31 +43,90 @@ function DeleteAccountModal({
   deleting: boolean;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="rounded-2xl bg-background p-6 shadow-md w-full max-w-sm mx-4">
-        <div className="flex items-center justify-between pb-4 mb-5 border-b">
-          <p className="text-lg font-bold">Delete Account</p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="rounded-2xl bg-white p-6 shadow-2xl w-full max-w-sm mx-4 border border-red-100">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
+            <Trash2 className="h-5 w-5 text-red-600" />
+          </div>
+          <div className="flex-1">
+            <p className="font-semibold text-slate-900">Delete Account</p>
+            <p className="text-xs text-slate-500">This cannot be undone</p>
+          </div>
           <button
             onClick={onClose}
             disabled={deleting}
-            className="hover:text-muted-foreground transition-colors disabled:opacity-50"
+            className="text-slate-400 hover:text-slate-600 transition-colors disabled:opacity-50"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
-        <p className="text-sm text-muted-foreground mb-6">
-          Are you sure you want to delete your account? This action cannot be
-          undone.
+        <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+          All your data, applications, and history will be permanently removed.
+          Are you sure?
         </p>
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose} disabled={deleting}>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={onClose}
+            disabled={deleting}
+          >
             Cancel
           </Button>
-          <Button variant="destructive" onClick={onDelete} disabled={deleting}>
-            {deleting ? "Deleting…" : "Delete"}
+          <Button
+            variant="destructive"
+            className="flex-1"
+            onClick={onDelete}
+            disabled={deleting}
+          >
+            {deleting ? "Deleting…" : "Yes, delete"}
           </Button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function Section({
+  icon,
+  title,
+  subtitle,
+  action,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle?: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/60">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white border border-slate-200 shadow-sm text-slate-600">
+            {icon}
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-slate-800">{title}</p>
+            {subtitle && <p className="text-xs text-slate-400">{subtitle}</p>}
+          </div>
+        </div>
+        {action}
+      </div>
+      <div className="px-6 py-5">{children}</div>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+        {label}
+      </label>
+      {children}
     </div>
   );
 }
@@ -70,13 +135,11 @@ export function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Personal info edit
   const [editingInfo, setEditingInfo] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [savingInfo, setSavingInfo] = useState(false);
 
-  // Password change
   const [editingPass, setEditingPass] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -115,10 +178,7 @@ export function ProfilePage() {
   async function handleSaveInfo() {
     setSavingInfo(true);
     try {
-      const res = await api.put<ApiResponse<UserProfile>>("/auth/me", {
-        name,
-        phone,
-      });
+      const res = await api.put<ApiResponse<UserProfile>>("/auth/me", { name, phone });
       setProfile(res.data);
       setEditingInfo(false);
       toast.success("Profile updated");
@@ -167,16 +227,12 @@ export function ProfilePage() {
     const formData = new FormData();
     formData.append("avatar", file);
     try {
-      const res = await api.put<ApiResponse<UserProfile>>(
-        "/auth/me",
-        formData,
-      );
+      const res = await api.put<ApiResponse<UserProfile>>("/auth/me", formData);
       setProfile(res.data);
       toast.success("Avatar updated");
     } catch {
       toast.error("Avatar upload failed");
     }
-    // Reset so same file can be re-selected
     e.target.value = "";
   }
 
@@ -199,9 +255,10 @@ export function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen flex-col">
-        <div className="flex flex-1 items-center justify-center text-muted-foreground text-sm">
-          Loading…
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-slate-200 animate-pulse" />
+          <div className="h-3 w-24 bg-slate-200 rounded animate-pulse" />
         </div>
       </div>
     );
@@ -210,229 +267,240 @@ export function ProfilePage() {
   if (!profile) return null;
 
   const roleLabel = ROLE_LABELS[profile.role] ?? profile.role;
+  const roleColor = ROLE_COLORS[profile.role] ?? "bg-slate-100 text-slate-600";
+  const initials = profile.name
+    .split(" ")
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
   return (
-    <div className="flex min-h-screen flex-col bg-muted/30">
-      <main className="mx-auto w-full max-w-4xl px-6 py-10 flex flex-col gap-6">
-        {/* Tab switcher — เฉพาะ companyUser */}
-        {profile.role === "companyUser" && (
-          <div className="flex gap-1 border-b">
-            <button
-              onClick={() => setActiveTab("user")}
-              className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
-                activeTab === "user"
-                  ? "border-foreground text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              User Profile
-            </button>
-            <button
-              onClick={() => setActiveTab("company")}
-              className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
-                activeTab === "company"
-                  ? "border-foreground text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Company Profile
-            </button>
-          </div>
-        )}
-
-        {/* Company tab */}
-        {profile.role === "companyUser" && activeTab === "company" ? (
-          <CompanyProfileSection />
-        ) : (
-          <>
+    <div className="min-h-screen bg-slate-50">
+      <div className="max-w-5xl mx-auto px-4 py-10 sm:px-6 lg:px-8">
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
+          {/* Sidebar */}
+          <aside className="w-full lg:w-72 shrink-0 flex flex-col gap-4">
             {/* Identity card */}
-            <div className="rounded-2xl bg-background p-6 flex items-center gap-5 shadow-md">
-              <div className="relative shrink-0">
-                <div className="h-20 w-20 rounded-full overflow-hidden bg-muted flex items-center justify-center">
-                  {profile.avatar ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={`${BASE_URL}${profile.avatar}`}
-                      alt={profile.name}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-3xl font-bold text-muted-foreground select-none">
-                      {profile.name.charAt(0).toUpperCase()}
-                    </span>
-                  )}
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+              <div className="h-20 bg-slate-900" />
+              <div className="px-5 pb-5 -mt-10">
+                <div className="relative inline-block mb-3">
+                  <div className="h-20 w-20 rounded-2xl overflow-hidden bg-white border-4 border-white shadow-md flex items-center justify-center">
+                    {profile.avatar ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={`${BASE_URL}${profile.avatar}`}
+                        alt={profile.name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-2xl font-bold text-slate-500 select-none">
+                        {initials}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => avatarInputRef.current?.click()}
+                    className="absolute -bottom-1 -right-1 rounded-full bg-white border border-slate-200 shadow-sm p-1.5 hover:bg-slate-50 transition-colors"
+                    aria-label="Change avatar"
+                  >
+                    <Camera className="h-3 w-3 text-slate-600" />
+                  </button>
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarChange}
+                  />
                 </div>
+                <p className="font-semibold text-slate-900 text-base leading-tight">{profile.name}</p>
+                <p className="text-sm text-slate-400 mt-0.5 mb-3 truncate">{profile.email}</p>
+                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${roleColor}`}>
+                  {roleLabel}
+                </span>
+              </div>
+            </div>
+
+            {/* Tab nav — company only */}
+            {profile.role === "companyUser" && (
+              <nav className="bg-white rounded-2xl border border-slate-100 shadow-sm p-2 flex flex-col gap-1">
                 <button
-                  type="button"
-                  onClick={() => avatarInputRef.current?.click()}
-                  className="absolute bottom-0 right-0 rounded-full bg-background border shadow-sm p-1.5 hover:bg-muted transition-colors"
-                  aria-label="Change avatar"
+                  onClick={() => setActiveTab("user")}
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors w-full text-left ${
+                    activeTab === "user"
+                      ? "bg-slate-100 text-slate-900"
+                      : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
+                  }`}
                 >
-                  <Camera className="h-3.5 w-3.5" />
+                  <User className="h-4 w-4" />
+                  User Profile
                 </button>
-                <input
-                  ref={avatarInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleAvatarChange}
-                />
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <p className="text-xl font-bold">{profile.name}</p>
-                <p className="text-sm text-muted-foreground">{profile.email}</p>
-                <p className="text-sm text-muted-foreground">{roleLabel}</p>
-              </div>
-            </div>
-
-            {/* Personal Information */}
-            <div className="rounded-2xl bg-background p-6 shadow-md">
-              <div className="flex items-center justify-between pb-4 mb-5 border-b">
-                <p className="text-lg font-bold">Personal Information</p>
-                {editingInfo ? (
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={cancelInfo}>
-                      Cancel
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={handleSaveInfo}
-                      disabled={savingInfo}
-                    >
-                      {savingInfo ? "Saving…" : "Save"}
-                    </Button>
-                  </div>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setEditingInfo(true)}
-                  >
-                    <Pencil className="h-3.5 w-3.5 mr-1.5" />
-                    Edit
-                  </Button>
-                )}
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1.5">Name</p>
-                  {editingInfo ? (
-                    <Input
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                    />
-                  ) : (
-                    <p className="font-medium">{profile.name}</p>
-                  )}
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1.5">Phone</p>
-                  {editingInfo ? (
-                    <Input
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="Phone number"
-                    />
-                  ) : (
-                    <p className="font-medium">{profile.phone ?? "—"}</p>
-                  )}
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1.5">Email</p>
-                  <p className="font-medium">{profile.email}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Change Password */}
-            <div className="rounded-2xl bg-background p-6 shadow-md">
-              <div className="flex items-start justify-between pb-4 mb-5 border-b">
-                <div>
-                  <p className="text-lg font-bold">Change Password</p>
-                  <p className="text-sm text-muted-foreground mt-0.5">
-                    Please enter your current password to change your password
-                  </p>
-                </div>
-                {editingPass ? (
-                  <div className="flex gap-2 shrink-0 ml-4">
-                    <Button size="sm" variant="outline" onClick={cancelPass}>
-                      Cancel
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={handleChangePassword}
-                      disabled={savingPass}
-                    >
-                      {savingPass ? "Saving…" : "Save"}
-                    </Button>
-                  </div>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setEditingPass(true)}
-                    className="shrink-0 ml-4"
-                  >
-                    <Pencil className="h-3.5 w-3.5 mr-1.5" />
-                    Edit
-                  </Button>
-                )}
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1.5">
-                    Current Password
-                  </p>
-                  <Input
-                    type="password"
-                    placeholder="Enter your current password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    disabled={!editingPass}
-                  />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1.5">
-                    New Password
-                  </p>
-                  <Input
-                    type="password"
-                    placeholder="Enter your new password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    disabled={!editingPass}
-                  />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1.5">
-                    Confirm New Password
-                  </p>
-                  <Input
-                    type="password"
-                    placeholder="Re-enter your new password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    disabled={!editingPass}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Delete Account */}
-            {profile.role === "jobSeeker" && (
-              <div className="flex justify-center mt-8">
-                <Button
-                  variant="destructive"
-                  onClick={() => setShowDeleteModal(true)}
-                  disabled={deleting}
+                <button
+                  onClick={() => setActiveTab("company")}
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors w-full text-left ${
+                    activeTab === "company"
+                      ? "bg-slate-100 text-slate-900"
+                      : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
+                  }`}
                 >
-                  Delete Account
-                </Button>
-              </div>
+                  <Shield className="h-4 w-4" />
+                  Company Profile
+                </button>
+              </nav>
             )}
-          </>
-        )}
-      </main>
+          </aside>
+
+          {/* Main content */}
+          <main className="flex-1 min-w-0 flex flex-col gap-5">
+            {profile.role === "companyUser" && activeTab === "company" ? (
+              <CompanyProfileSection />
+            ) : (
+              <>
+                {/* Personal Information */}
+                <Section
+                  icon={<User className="h-4 w-4" />}
+                  title="Personal Information"
+                  action={
+                    editingInfo ? (
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={cancelInfo}>
+                          Cancel
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={handleSaveInfo}
+                          disabled={savingInfo}
+                          className="bg-slate-900 text-white hover:bg-slate-700"
+                        >
+                          {savingInfo ? "Saving…" : "Save"}
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button size="sm" variant="outline" onClick={() => setEditingInfo(true)}>
+                        <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                        Edit
+                      </Button>
+                    )
+                  }
+                >
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                    <Field label="Full Name">
+                      {editingInfo ? (
+                        <Input value={name} onChange={(e) => setName(e.target.value)} />
+                      ) : (
+                        <p className="text-sm font-medium text-slate-900">{profile.name}</p>
+                      )}
+                    </Field>
+                    <Field label="Email">
+                      <p className="text-sm font-medium text-slate-900">{profile.email}</p>
+                    </Field>
+                    <Field label="Phone">
+                      {editingInfo ? (
+                        <Input
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          placeholder="+1 (555) 000-0000"
+                        />
+                      ) : (
+                        <p className="text-sm font-medium text-slate-900">{profile.phone ?? "—"}</p>
+                      )}
+                    </Field>
+                  </div>
+                </Section>
+
+                {/* Change Password */}
+                <Section
+                  icon={<KeyRound className="h-4 w-4" />}
+                  title="Password"
+                  subtitle="Update your login password"
+                  action={
+                    editingPass ? (
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={cancelPass}>
+                          Cancel
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={handleChangePassword}
+                          disabled={savingPass}
+                          className="bg-slate-900 text-white hover:bg-slate-700"
+                        >
+                          {savingPass ? "Saving…" : "Save"}
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button size="sm" variant="outline" onClick={() => setEditingPass(true)}>
+                        <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                        Change
+                      </Button>
+                    )
+                  }
+                >
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                    <Field label="Current Password">
+                      <Input
+                        type="password"
+                        placeholder="••••••••"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        disabled={!editingPass}
+                      />
+                    </Field>
+                    <Field label="New Password">
+                      <Input
+                        type="password"
+                        placeholder="••••••••"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        disabled={!editingPass}
+                      />
+                    </Field>
+                    <Field label="Confirm New Password">
+                      <Input
+                        type="password"
+                        placeholder="••••••••"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        disabled={!editingPass}
+                      />
+                    </Field>
+                  </div>
+                </Section>
+
+                {/* Danger Zone */}
+                {profile.role === "jobSeeker" && (
+                  <Section
+                    icon={<Trash2 className="h-4 w-4 text-red-500" />}
+                    title="Danger Zone"
+                    subtitle="Permanent and irreversible actions"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-slate-800">Delete your account</p>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          All data will be permanently removed
+                        </p>
+                      </div>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => setShowDeleteModal(true)}
+                        disabled={deleting}
+                        className="shrink-0 ml-4"
+                      >
+                        Delete Account
+                      </Button>
+                    </div>
+                  </Section>
+                )}
+              </>
+            )}
+          </main>
+        </div>
+      </div>
 
       {showDeleteModal && (
         <DeleteAccountModal

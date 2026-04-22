@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Camera, Pencil } from "lucide-react";
+import { Building2, Camera, Globe, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,47 @@ type CompanyProfile = {
 };
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+
+function Section({
+  icon,
+  title,
+  subtitle,
+  action,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle?: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/60">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white border border-slate-200 shadow-sm text-slate-600">
+            {icon}
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-slate-800">{title}</p>
+            {subtitle && <p className="text-xs text-slate-400">{subtitle}</p>}
+          </div>
+        </div>
+        {action}
+      </div>
+      <div className="px-6 py-5">{children}</div>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">{label}</label>
+      {children}
+    </div>
+  );
+}
 
 export function CompanyProfileSection() {
   const [profile, setProfile] = useState<CompanyProfile | null>(null);
@@ -109,8 +150,10 @@ export function CompanyProfileSection() {
 
   if (loading) {
     return (
-      <div className="flex flex-1 items-center justify-center text-muted-foreground text-sm py-16">
-        Loading…
+      <div className="flex flex-col gap-5">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="bg-white rounded-2xl border border-slate-100 h-32 animate-pulse" />
+        ))}
       </div>
     );
   }
@@ -118,58 +161,72 @@ export function CompanyProfileSection() {
   if (!profile) return null;
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Identity card */}
-      <div className="rounded-2xl bg-background p-6 flex items-center gap-5 shadow-md">
-        <div className="relative shrink-0">
-          <div className="h-20 w-20 rounded-full overflow-hidden bg-muted flex items-center justify-center">
-            {profile.logo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={`${BASE_URL}${profile.logo}`}
-                alt="Company logo"
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <span className="text-3xl font-bold text-muted-foreground select-none">C</span>
-            )}
+    <div className="flex flex-col gap-5">
+      {/* Company identity */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="h-16 bg-gradient-to-br from-slate-800 to-slate-900" />
+        <div className="px-6 pb-5 -mt-8 flex items-end gap-4">
+          <div className="relative shrink-0">
+            <div className="h-16 w-16 rounded-xl overflow-hidden bg-white border-4 border-white shadow-md flex items-center justify-center">
+              {profile.logo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={`${BASE_URL}${profile.logo}`}
+                  alt="Company logo"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <Building2 className="h-7 w-7 text-slate-400" />
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => logoInputRef.current?.click()}
+              className="absolute -bottom-1 -right-1 rounded-full bg-white border border-slate-200 shadow-sm p-1.5 hover:bg-slate-50 transition-colors"
+              aria-label="Change logo"
+            >
+              <Camera className="h-3 w-3 text-slate-600" />
+            </button>
+            <input
+              ref={logoInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleLogoChange}
+            />
           </div>
-          <button
-            type="button"
-            onClick={() => logoInputRef.current?.click()}
-            className="absolute bottom-0 right-0 rounded-full bg-background border shadow-sm p-1.5 hover:bg-muted transition-colors"
-            aria-label="Change logo"
-          >
-            <Camera className="h-3.5 w-3.5" />
-          </button>
-          <input
-            ref={logoInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleLogoChange}
-          />
-        </div>
-        <div className="flex flex-col gap-0.5">
-          <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium w-fit">
-            company
-          </span>
+          <div className="mb-1">
+            <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-700">
+              Company
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Company Details */}
-      <div className="rounded-2xl bg-background p-6 shadow-md">
-        <div className="flex items-center justify-between pb-4 mb-5 border-b">
-          <p className="text-lg font-bold">Company Details</p>
-          {editingDetails ? (
+      <Section
+        icon={<Globe className="h-4 w-4" />}
+        title="Company Details"
+        subtitle="Public-facing information"
+        action={
+          editingDetails ? (
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => {
-                setEditingDetails(false);
-                setWebsite(profile.website ?? "");
-              }}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setEditingDetails(false);
+                  setWebsite(profile.website ?? "");
+                }}
+              >
                 Cancel
               </Button>
-              <Button size="sm" onClick={handleSaveDetails} disabled={savingDetails}>
+              <Button
+                size="sm"
+                onClick={handleSaveDetails}
+                disabled={savingDetails}
+                className="bg-slate-900 text-white hover:bg-slate-700"
+              >
                 {savingDetails ? "Saving…" : "Save"}
               </Button>
             </div>
@@ -178,11 +235,11 @@ export function CompanyProfileSection() {
               <Pencil className="h-3.5 w-3.5 mr-1.5" />
               Edit
             </Button>
-          )}
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          <div>
-            <p className="text-sm text-muted-foreground mb-1.5">Website</p>
+          )
+        }
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <Field label="Website">
             {editingDetails ? (
               <Input
                 value={website}
@@ -190,45 +247,70 @@ export function CompanyProfileSection() {
                 placeholder="https://example.com"
               />
             ) : (
-              <p className="font-medium">{profile.website ?? "—"}</p>
+              <p className="text-sm font-medium text-slate-900">
+                {profile.website ? (
+                  <a
+                    href={profile.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-slate-700 hover:underline"
+                  >
+                    {profile.website}
+                  </a>
+                ) : (
+                  "—"
+                )}
+              </p>
             )}
-          </div>
+          </Field>
         </div>
-      </div>
+      </Section>
 
       {/* Description */}
-      <div className="rounded-2xl bg-background p-6 shadow-md">
-        <div className="flex items-center justify-between pb-4 mb-5 border-b">
-          <p className="text-lg font-bold">Description</p>
-          {!editingDesc && (
+      <Section
+        icon={<Building2 className="h-4 w-4" />}
+        title="About"
+        subtitle="Shown to job seekers on your profile"
+        action={
+          !editingDesc ? (
             <Button size="sm" variant="outline" onClick={() => setEditingDesc(true)}>
               <Pencil className="h-3.5 w-3.5 mr-1.5" />
               Edit
             </Button>
-          )}
-        </div>
+          ) : undefined
+        }
+      >
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           disabled={!editingDesc}
-          rows={4}
-          placeholder="Type your message here."
-          className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring resize-none disabled:opacity-60"
+          rows={5}
+          placeholder="Tell job seekers about your company, culture, and mission…"
+          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-500 resize-none disabled:opacity-60 disabled:bg-slate-50 placeholder:text-slate-400 transition"
         />
         {editingDesc && (
           <div className="flex justify-end gap-2 mt-3">
-            <Button variant="outline" size="sm" onClick={() => {
-              setEditingDesc(false);
-              setDescription(profile.description ?? "");
-            }}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setEditingDesc(false);
+                setDescription(profile.description ?? "");
+              }}
+            >
               Cancel
             </Button>
-            <Button size="sm" onClick={handleSaveDesc} disabled={savingDesc}>
+            <Button
+              size="sm"
+              onClick={handleSaveDesc}
+              disabled={savingDesc}
+              className="bg-slate-900 text-white hover:bg-slate-700"
+            >
               {savingDesc ? "Saving…" : "Save"}
             </Button>
           </div>
         )}
-      </div>
+      </Section>
     </div>
   );
 }
