@@ -2,7 +2,14 @@ const TOKEN_KEY = "job-fair-token";
 
 export function getToken() {
   if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(TOKEN_KEY);
+  const token = window.localStorage.getItem(TOKEN_KEY);
+  if (!token) return null;
+  const cookiePresent = document.cookie.split(";").some(c => c.trim().startsWith(`${TOKEN_KEY}=`));
+  if (!cookiePresent) {
+    window.localStorage.removeItem(TOKEN_KEY);
+    return null;
+  }
+  return token;
 }
 
 export function setToken(token: string) {
