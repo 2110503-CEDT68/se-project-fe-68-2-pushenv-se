@@ -37,7 +37,7 @@ function getSignedInRedirect(role?: string) {
   return "/events";
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const token = request.cookies.get(TOKEN_COOKIE)?.value;
   const payload = token ? decodeTokenPayload(token) : null;
