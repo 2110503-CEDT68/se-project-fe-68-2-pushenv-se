@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { ConfirmModal } from "@/components/shared/ConfirmModal";
 import { X, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
@@ -149,6 +150,7 @@ function EditEventCompanies({ event, onClose, onUpdated }: { event: AdminEvent; 
   const [searching, setSearching] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<any | null>(null);
   const [assigning, setAssigning] = useState(false);
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -219,10 +221,10 @@ function EditEventCompanies({ event, onClose, onUpdated }: { event: AdminEvent; 
   }
 
   async function handleRemoveCompany(companyId: string) {
-    if (!confirm("Remove this company from event?")) return;
     try {
       await api.delete(`/admin/events/${event.id}/companies/${companyId}`);
       toast.success("Company removed");
+      setConfirmRemoveId(null);
       fetchEventCompanies();
       onUpdated();
     } catch (err) {
@@ -300,7 +302,7 @@ function EditEventCompanies({ event, onClose, onUpdated }: { event: AdminEvent; 
                 <div key={ec.company.id} className="inline-flex items-center gap-1.5 pl-3 pr-2 py-1.5 bg-muted/50 hover:bg-muted border rounded-full text-sm transition-colors shadow-sm">
                   <span className="font-medium whitespace-nowrap">{ec.company.companyUser.name}</span>
                   <button
-                    onClick={() => handleRemoveCompany(ec.company.id)}
+                    onClick={() => setConfirmRemoveId(ec.company.id)}
                     className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 p-0.5 rounded-full transition-colors ml-1"
                     title={`Remove ${ec.company.companyUser.email}`}
                   >
@@ -316,6 +318,15 @@ function EditEventCompanies({ event, onClose, onUpdated }: { event: AdminEvent; 
       <div className="flex justify-end gap-2 pt-4 mt-2 shrink-0">
         <Button type="button" variant="outline" onClick={onClose}>Close</Button>
       </div>
+
+      <ConfirmModal
+        open={!!confirmRemoveId}
+        onClose={() => setConfirmRemoveId(null)}
+        onConfirm={() => handleRemoveCompany(confirmRemoveId!)}
+        title="Remove company"
+        description="Remove this company from the event? They will no longer appear as a participant."
+        confirmLabel="Remove"
+      />
     </div>
   );
 }

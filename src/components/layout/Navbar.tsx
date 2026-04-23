@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { getUserInfo, clearUserInfo } from "@/lib/auth";
@@ -15,9 +15,7 @@ export function Navbar() {
   if (pathname.startsWith("/admin")) return null;
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const adminMenuRef = useRef<HTMLDivElement>(null);
 
   const isActivePath = (href: string) =>
     pathname === href || pathname.startsWith(`${href}/`);
@@ -50,36 +48,26 @@ export function Navbar() {
       }
     };
 
-    const handleClickOutside = (e: MouseEvent) => {
-      if (adminMenuRef.current && !adminMenuRef.current.contains(e.target as Node)) {
-        setIsAdminMenuOpen(false);
-      }
-    };
-
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        setIsAdminMenuOpen(false);
         setIsMobileMenuOpen(false);
       }
     };
 
     window.addEventListener("pageshow", handlePageShow);
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleEscape);
     window.addEventListener("auth-change", checkAuth);
 
     return () => {
       window.removeEventListener("pageshow", handlePageShow);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEscape);
       window.removeEventListener("auth-change", checkAuth);
     };
   }, []);
 
   useEffect(() => {
-    setIsAdminMenuOpen(false);
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
@@ -100,78 +88,18 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-[100] border-b border-border bg-background/95 shadow-sm backdrop-blur-sm">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        {/* Left: Logo with Drill-down Menu */}
-        <div className="relative" ref={adminMenuRef}>
-          {isAdmin ? (
-            <>
-              <button
-                onClick={() => setIsAdminMenuOpen(!isAdminMenuOpen)}
-                className="text-sm font-bold tracking-widest uppercase hover:text-primary transition-colors flex items-center gap-2"
-              >
-                Job Fair
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className={`transition-transform duration-200 ${isAdminMenuOpen ? "rotate-180" : ""}`}
-                >
-                  <path d="m6 9 6 6 6-6" />
-                </svg>
-              </button>
-
-              {/* Drill-down Menu */}
-              {isAdminMenuOpen && (
-                <div className="absolute top-full left-0 mt-2 w-56 bg-background border border-border rounded-lg shadow-xl py-2 animate-in fade-in slide-in-from-top-1">
-                  <Link
-                    href="/"
-                    className="block px-4 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
-                    onClick={() => setIsAdminMenuOpen(false)}
-                  >
-                    Home
-                  </Link>
-                  <div className="h-px bg-border my-1" />
-                  <Link
-                    href="/admin/users"
-                    className="block px-4 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
-                    onClick={() => setIsAdminMenuOpen(false)}
-                  >
-                    User Management
-                  </Link>
-                  <Link
-                    href="/admin/companies"
-                    className="block px-4 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
-                    onClick={() => setIsAdminMenuOpen(false)}
-                  >
-                    Company Management
-                  </Link>
-                  <Link
-                    href="/admin/events"
-                    className="block px-4 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
-                    onClick={() => setIsAdminMenuOpen(false)}
-                  >
-                    Event Management
-                  </Link>
-                </div>
-              )}
-            </>
-          ) : (
-            <Link
-              href="/"
-              className="text-sm font-bold tracking-widest uppercase hover:text-primary transition-colors"
-            >
-              Job Fair
-            </Link>
-          )}
+        {/* Left: Logo */}
+        <div>
+          <Link
+            href="/"
+            className="text-sm font-bold tracking-widest uppercase hover:text-primary transition-colors"
+          >
+            Job Fair
+          </Link>
         </div>
 
         {/* Right: Navigation + User actions */}
-        <div className="flex items-center md:gap-6">
+        <div className="flex items-center gap-4">
           <div className="md:hidden">
             <Button
               variant="ghost"
@@ -185,28 +113,31 @@ export function Navbar() {
             </Button>
           </div>
 
-          {/* Navigation links - now on the right */}
+          {/* Navigation links */}
           {isSignedIn && (
             <nav className="hidden md:flex items-center gap-4">
-              <Link
-                href="/events"
-                className={getNavLinkClassName("/events")}
-              >
+              <Link href="/events" className={getNavLinkClassName("/events")}>
                 Events
               </Link>
-              <Link
-                href="/companies"
-                className={getNavLinkClassName("/companies")}
-              >
+              <Link href="/companies" className={getNavLinkClassName("/companies")}>
                 Company
               </Link>
             </nav>
           )}
 
+          {isSignedIn && isAdmin && (
+            <>
+              <div className="hidden md:block w-px h-5 bg-border" />
+              <Link href="/admin" className={`hidden md:inline-flex ${getNavLinkClassName("/admin")}`}>
+                Admin
+              </Link>
+            </>
+          )}
+
           <div className="flex items-center gap-2">
             {isSignedIn ? (
               <>
-                <div className="w-px h-6 bg-border mx-2" />
+                <div className="w-px h-6 bg-border" />
                 <Button variant="ghost" size="icon" asChild title="Profile">
                   <Link href="/profile">
                     <svg

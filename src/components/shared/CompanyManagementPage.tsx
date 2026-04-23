@@ -1,12 +1,34 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Building2, Pencil, Trash2, X } from "lucide-react";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowRight, Plus } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AdminDialog,
+  AdminEmptyState,
+  AdminLoadingState,
+  AdminMobileCard,
+  AdminMobileList,
+  AdminPageHeader,
+  AdminPagePanel,
+  AdminPagination,
+  AdminPrimaryCell,
+  AdminTable,
+  AdminTableBody,
+  AdminTableCell,
+  AdminTableHead,
+  AdminTableHeaderCell,
+  AdminTableRow,
+  AdminTableWrapper,
+  AdminToolbar,
+  adminInputClassName,
+} from "@/components/admin/admin-ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import type { ApiResponse } from "@/types/api";
 
 type CompanyUser = { id: string; name: string; email: string };
@@ -46,9 +68,7 @@ function buildPages(page: number, total: number): (number | "...")[] {
   if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
   const items: (number | "...")[] = [1];
   if (page > 3) items.push("...");
-  for (let i = Math.max(2, page - 1); i <= Math.min(total - 1, page + 1); i++) {
-    items.push(i);
-  }
+  for (let i = Math.max(2, page - 1); i <= Math.min(total - 1, page + 1); i++) items.push(i);
   if (page < total - 2) items.push("...");
   items.push(total);
   return items;
@@ -59,8 +79,6 @@ function extractErrorMessage(err: unknown, fallback: string) {
     ? String((err as { message: unknown }).message)
     : fallback;
 }
-
-// ── Create Modal ──────────────────────────────────────────────────────────────
 
 function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
@@ -81,156 +99,65 @@ function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="rounded-2xl bg-background p-6 shadow-md w-full max-w-md mx-4">
-        <div className="flex items-center justify-between pb-4 mb-5 border-b">
-          <p className="text-lg font-bold">Create Company</p>
-          <button onClick={onClose} className="hover:text-muted-foreground transition-colors">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <AdminDialog
+      title="Create company"
+      description="Create the company account first, then open the detail page to edit profile content and jobs."
+      onClose={onClose}
+    >
+      <form onSubmit={handleSubmit} className="space-y-4 px-5 py-5 sm:px-6 sm:py-6">
+        <div className="grid gap-4">
           <div>
-            <Label className="mb-1.5">Name</Label>
-            <Input required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
-          </div>
-          <div>
-            <Label className="mb-1.5">Email</Label>
-            <Input required type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
-          </div>
-          <div>
-            <Label className="mb-1.5">Password</Label>
-            <Input required type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={saving}>{saving ? "Creating…" : "Create"}</Button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-// ── Edit Modal ────────────────────────────────────────────────────────────────
-
-type EditForm = { description: string; website: string };
-
-function EditModal({ company, onClose, onUpdated }: { company: Company; onClose: () => void; onUpdated: () => void }) {
-  const [form, setForm] = useState<EditForm>({
-    description: company.description ?? "",
-    website: company.website ?? "",
-  });
-  const [saving, setSaving] = useState(false);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      await api.put(`/admin/companies/${company.id}`, {
-        description: form.description || undefined,
-        website: form.website || undefined,
-      });
-      toast.success("Company updated");
-      onUpdated();
-    } catch (err) {
-      toast.error(extractErrorMessage(err, "Failed to update company"));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="rounded-2xl bg-background p-6 shadow-md w-full max-w-md mx-4">
-        <div className="flex items-center justify-between pb-4 mb-5 border-b">
-          <p className="text-lg font-bold">Edit Company</p>
-          <button onClick={onClose} className="hover:text-muted-foreground transition-colors">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div>
-            <Label className="mb-1.5">Website</Label>
+            <Label className="mb-2 block text-sm font-medium text-slate-700">Company name</Label>
             <Input
-              value={form.website}
-              onChange={e => setForm(f => ({ ...f, website: e.target.value }))}
-              placeholder="https://example.com"
+              required
+              value={form.name}
+              onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              className={cn("h-11 rounded-xl", adminInputClassName)}
             />
           </div>
           <div>
-            <Label className="mb-1.5">Description</Label>
-            <textarea
-              value={form.description}
-              onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-              rows={4}
-              className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring resize-none"
-              placeholder="Company description"
+            <Label className="mb-2 block text-sm font-medium text-slate-700">Email</Label>
+            <Input
+              required
+              type="email"
+              value={form.email}
+              onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+              className={cn("h-11 rounded-xl", adminInputClassName)}
             />
           </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
+          <div>
+            <Label className="mb-2 block text-sm font-medium text-slate-700">Password</Label>
+            <Input
+              required
+              type="password"
+              value={form.password}
+              onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+              className={cn("h-11 rounded-xl", adminInputClassName)}
+            />
           </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-// ── Delete Modal ──────────────────────────────────────────────────────────────
-
-function DeleteModal({ company, onClose, onDeleted }: { company: Company; onClose: () => void; onDeleted: () => void }) {
-  const [deleting, setDeleting] = useState(false);
-
-  async function handleDelete() {
-    setDeleting(true);
-    try {
-      // Deleting the user account cascades to company profile
-      await api.delete(`/admin/accounts/${company.companyUserId}`);
-      toast.success("Company deleted");
-      onDeleted();
-    } catch (err) {
-      toast.error(extractErrorMessage(err, "Failed to delete company"));
-    } finally {
-      setDeleting(false);
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="rounded-2xl bg-background p-6 shadow-md w-full max-w-sm mx-4">
-        <div className="flex items-center justify-between pb-4 mb-5 border-b">
-          <p className="text-lg font-bold">Delete Company</p>
-          <button onClick={onClose} className="hover:text-muted-foreground transition-colors">
-            <X className="h-4 w-4" />
-          </button>
         </div>
-        <p className="text-sm text-muted-foreground mb-6">
-          Delete <span className="font-medium text-foreground">{company.companyUser.name}</span>? This also deletes the user account and all jobs. This cannot be undone.
-        </p>
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
-            {deleting ? "Deleting…" : "Delete"}
+
+        <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
+          <Button type="button" variant="outline" className="rounded-xl border-slate-200" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" className="rounded-xl" disabled={saving}>
+            {saving ? "Creating..." : "Create company"}
           </Button>
         </div>
-      </div>
-    </div>
+      </form>
+    </AdminDialog>
   );
 }
-
-// ── Main Page ─────────────────────────────────────────────────────────────────
 
 export function CompanyManagementPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalCompanies, setTotalCompanies] = useState(0);
   const [loading, setLoading] = useState(true);
-
+  const [query, setQuery] = useState("");
   const [showCreate, setShowCreate] = useState(false);
-  const [editCompany, setEditCompany] = useState<Company | null>(null);
-  const [deleteCompany, setDeleteCompany] = useState<Company | null>(null);
 
   const fetchCompanies = useCallback(async (p: number) => {
     setLoading(true);
@@ -240,6 +167,7 @@ export function CompanyManagementPage() {
       });
       setCompanies(res.data.data);
       setTotalPages(res.data.totalPages);
+      setTotalCompanies(res.data.total);
     } catch {
       toast.error("Failed to load companies");
     } finally {
@@ -251,119 +179,140 @@ export function CompanyManagementPage() {
     fetchCompanies(page);
   }, [fetchCompanies, page]);
 
+  const filteredCompanies = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) return companies;
+    return companies.filter(company =>
+      [company.companyUser.name, company.companyUser.email, company.website ?? "", company.description ?? ""]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalized),
+    );
+  }, [companies, query]);
+
   const pages = buildPages(page, totalPages);
+  const totalJobs = companies.reduce((sum, company) => sum + company._count.jobs, 0);
+  const withWebsite = companies.filter(company => company.website).length;
 
   return (
-    <div className="flex min-h-screen flex-col bg-muted/30">
-      <main className="mx-auto w-full max-w-6xl px-6 py-10">
-        <div className="rounded-2xl bg-background p-6 shadow-md">
-          {/* Header */}
-          <div className="flex items-center justify-between pb-4 mb-5 border-b">
-            <p className="text-xl font-bold">Company Management</p>
-            <Button onClick={() => setShowCreate(true)}>
-              <Building2 className="h-4 w-4 mr-2" />
-              Create Company
-            </Button>
-          </div>
+    <AdminPagePanel>
+      <AdminPageHeader
+        eyebrow="Company directory"
+        title="Companies"
+        actions={
+          <Button className="rounded-xl" onClick={() => setShowCreate(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Create company
+          </Button>
+        }
+        stats={[
+          { label: "Total companies", value: totalCompanies, hint: "Across the directory" },
+          { label: "Jobs on page", value: totalJobs, hint: "Combined active and closed listings" },
+          { label: "Websites set", value: withWebsite, hint: "Visible on this page" },
+          { label: "Newly updated", value: companies.length, hint: "Current page load" },
+        ]}
+      />
 
-          {/* Table */}
-          {loading ? (
-            <div className="py-16 text-center text-sm text-muted-foreground">Loading…</div>
-          ) : companies.length === 0 ? (
-            <div className="py-16 text-center text-sm text-muted-foreground">No companies found.</div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="py-3 text-left font-medium text-muted-foreground w-[20%]">Name</th>
-                  <th className="py-3 text-left font-medium text-muted-foreground w-[22%]">Email</th>
-                  <th className="py-3 text-left font-medium text-muted-foreground w-[22%]">Website</th>
-                  <th className="py-3 text-left font-medium text-muted-foreground w-[10%]">Jobs</th>
-                  <th className="py-3 text-left font-medium text-muted-foreground w-[18%]">Created Date</th>
-                  <th className="py-3 text-left font-medium text-muted-foreground w-[8%]">Action</th>
+      <AdminToolbar
+        searchValue={query}
+        onSearchChange={setQuery}
+        searchPlaceholder="Search by company name, email, website, or description"
+        summary={`Showing ${filteredCompanies.length} of ${companies.length} loaded companies on this page.`}
+      />
+
+      <AdminTableWrapper>
+        {loading ? (
+          <AdminLoadingState label="Loading company data..." />
+        ) : filteredCompanies.length === 0 ? (
+          <AdminEmptyState
+            title={query ? "No matching companies" : "No companies found"}
+            description={
+              query
+                ? "Try a broader name or website query."
+                : "Create a company to start managing its profile and jobs."
+            }
+          />
+        ) : (
+          <>
+            <AdminTable>
+              <AdminTableHead>
+                <tr>
+                  <AdminTableHeaderCell className="w-[32%]">Company</AdminTableHeaderCell>
+                  <AdminTableHeaderCell className="w-[24%]">Website</AdminTableHeaderCell>
+                  <AdminTableHeaderCell className="w-[12%]">Jobs</AdminTableHeaderCell>
+                  <AdminTableHeaderCell className="w-[16%]">Updated</AdminTableHeaderCell>
+                  <AdminTableHeaderCell className="w-[16%] text-right">Details</AdminTableHeaderCell>
                 </tr>
-              </thead>
-              <tbody>
-                {companies.map(company => (
-                  <tr key={company.id} className="border-b last:border-0">
-                    <td className="py-3 pr-4 font-medium">{company.companyUser.name}</td>
-                    <td className="py-3 pr-4 text-muted-foreground">{company.companyUser.email}</td>
-                    <td className="py-3 pr-4 text-muted-foreground">
+              </AdminTableHead>
+              <AdminTableBody>
+                {filteredCompanies.map(company => (
+                  <AdminTableRow key={company.id}>
+                    <AdminTableCell className="text-slate-950">
+                      <AdminPrimaryCell
+                        title={company.companyUser.name}
+                        subtitle={company.companyUser.email}
+                      />
+                    </AdminTableCell>
+                    <AdminTableCell>
                       {company.website ? (
                         <a
-                          href={company.website}
+                          href={company.website.startsWith("http") ? company.website : `https://${company.website}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="hover:underline truncate block max-w-[180px]"
+                          className="truncate text-slate-700 underline-offset-4 hover:underline"
                         >
                           {company.website}
                         </a>
                       ) : (
-                        <span className="text-muted-foreground/50">—</span>
+                        "No website"
                       )}
-                    </td>
-                    <td className="py-3 pr-4 text-muted-foreground">{company._count.jobs}</td>
-                    <td className="py-3 pr-4 text-muted-foreground">{formatDate(company.createdAt)}</td>
-                    <td className="py-3">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setEditCompany(company)}
-                          className="hover:text-muted-foreground transition-colors"
-                          aria-label="Edit"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => setDeleteCompany(company)}
-                          className="text-destructive hover:text-destructive/70 transition-colors"
-                          aria-label="Delete"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                    </AdminTableCell>
+                    <AdminTableCell>{company._count.jobs}</AdminTableCell>
+                    <AdminTableCell>{formatDate(company.updatedAt)}</AdminTableCell>
+                    <AdminTableCell className="text-right">
+                      <Button asChild variant="outline" size="sm" className="rounded-xl border-slate-200">
+                        <Link href={`/admin/companies/${company.id}`}>
+                          See details
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        </Link>
+                      </Button>
+                    </AdminTableCell>
+                  </AdminTableRow>
                 ))}
-              </tbody>
-            </table>
-          )}
+              </AdminTableBody>
+            </AdminTable>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-end gap-1 mt-6">
-              <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-3 py-1.5 text-sm disabled:opacity-40 hover:text-muted-foreground transition-colors"
-              >
-                Previous
-              </button>
-              {pages.map((item, idx) =>
-                item === "..." ? (
-                  <span key={`dots-${idx}`} className="px-2 py-1.5 text-sm text-muted-foreground">…</span>
-                ) : (
-                  <button
-                    key={item}
-                    onClick={() => setPage(item)}
-                    className={`w-8 h-8 rounded-md text-sm font-medium transition-colors ${
-                      item === page ? "bg-foreground text-background" : "hover:bg-muted"
-                    }`}
-                  >
-                    {item}
-                  </button>
-                )
-              )}
-              <button
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="px-3 py-1.5 text-sm disabled:opacity-40 hover:text-muted-foreground transition-colors"
-              >
-                Next
-              </button>
-            </div>
-          )}
-        </div>
-      </main>
+            <AdminMobileList>
+              {filteredCompanies.map(company => (
+                <AdminMobileCard key={company.id}>
+                  <div className="space-y-1">
+                    <p className="text-base font-semibold text-slate-950">{company.companyUser.name}</p>
+                    <p className="text-sm text-slate-500">{company.companyUser.email}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-sm text-slate-600">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Jobs</p>
+                      <p className="mt-1">{company._count.jobs}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Website</p>
+                      <p className="mt-1 truncate">{company.website || "No website"}</p>
+                    </div>
+                  </div>
+                  <Button asChild variant="outline" size="sm" className="rounded-xl border-slate-200">
+                    <Link href={`/admin/companies/${company.id}`}>
+                      See details
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </Button>
+                </AdminMobileCard>
+              ))}
+            </AdminMobileList>
+          </>
+        )}
+      </AdminTableWrapper>
+
+      <AdminPagination page={page} totalPages={totalPages} pages={pages} onPageChange={setPage} />
 
       {showCreate && (
         <CreateModal
@@ -374,26 +323,6 @@ export function CompanyManagementPage() {
           }}
         />
       )}
-      {editCompany && (
-        <EditModal
-          company={editCompany}
-          onClose={() => setEditCompany(null)}
-          onUpdated={() => {
-            setEditCompany(null);
-            fetchCompanies(page);
-          }}
-        />
-      )}
-      {deleteCompany && (
-        <DeleteModal
-          company={deleteCompany}
-          onClose={() => setDeleteCompany(null)}
-          onDeleted={() => {
-            setDeleteCompany(null);
-            fetchCompanies(page);
-          }}
-        />
-      )}
-    </div>
+    </AdminPagePanel>
   );
 }

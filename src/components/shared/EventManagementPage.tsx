@@ -1,18 +1,34 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { CalendarPlus, Pencil, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowRight, CalendarPlus } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import {
+  AdminEmptyState,
+  AdminLoadingState,
+  AdminMobileCard,
+  AdminMobileList,
+  AdminPageHeader,
+  AdminPagePanel,
+  AdminPagination,
+  AdminPrimaryCell,
+  AdminTable,
+  AdminTableBody,
+  AdminTableCell,
+  AdminTableHead,
+  AdminTableHeaderCell,
+  AdminTableRow,
+  AdminTableWrapper,
+  AdminToolbar,
+} from "@/components/admin/admin-ui";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import type { ApiResponse } from "@/types/api";
-
 import { AdminEvent } from "./EventModals/types";
 import { CreateModal } from "./EventModals/CreateModal";
-import { EditModal } from "./EventModals/EditModal";
-import { DeleteModal } from "./EventModals/DeleteModal";
-import { extractErrorMessage } from "./EventModals/utils";
 
 type EventsPayload = {
   data: AdminEvent[];
@@ -36,26 +52,26 @@ function buildPages(page: number, total: number): (number | "...")[] {
   if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
   const items: (number | "...")[] = [1];
   if (page > 3) items.push("...");
-  for (let i = Math.max(2, page - 1); i <= Math.min(total - 1, page + 1); i++) {
-    items.push(i);
-  }
+  for (let i = Math.max(2, page - 1); i <= Math.min(total - 1, page + 1); i++) items.push(i);
   if (page < total - 2) items.push("...");
   items.push(total);
   return items;
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
+function publishBadgeClassName(isPublished: boolean) {
+  return isPublished
+    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+    : "border-amber-200 bg-amber-50 text-amber-700";
+}
 
 export function EventManagementPage() {
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalEvents, setTotalEvents] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [publishing, setPublishing] = useState<string | null>(null);
-
+  const [query, setQuery] = useState("");
   const [showCreate, setShowCreate] = useState(false);
-  const [editEvent, setEditEvent] = useState<AdminEvent | null>(null);
-  const [deleteEvent, setDeleteEvent] = useState<AdminEvent | null>(null);
 
   const fetchEvents = useCallback(async (p: number) => {
     setLoading(true);
@@ -65,6 +81,7 @@ export function EventManagementPage() {
       });
       setEvents(res.data.data);
       setTotalPages(res.data.totalPages);
+      setTotalEvents(res.data.total);
     } catch {
       toast.error("Failed to load events");
     } finally {
@@ -76,135 +93,142 @@ export function EventManagementPage() {
     fetchEvents(page);
   }, [fetchEvents, page]);
 
-  async function togglePublish(event: AdminEvent) {
-    setPublishing(event.id);
-    try {
-      await api.patch(`/admin/events/${event.id}/publish`, {});
-      toast.success(event.isPublished ? "Event unpublished" : "Event published");
-      fetchEvents(page);
-    } catch (err) {
-      toast.error(extractErrorMessage(err, "Failed to toggle publish"));
-    } finally {
-      setPublishing(null);
-    }
-  }
+  const filteredEvents = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) return events;
+    return events.filter(event =>
+      [event.name, event.location, event.description]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalized),
+    );
+  }, [events, query]);
 
   const pages = buildPages(page, totalPages);
+  const publishedCount = events.filter(event => event.isPublished).length;
+  const registrationsCount = events.reduce((sum, event) => sum + event._count.registrations, 0);
+  const companiesCount = events.reduce((sum, event) => sum + event._count.companies, 0);
 
   return (
-    <div className="flex min-h-screen flex-col bg-muted/30">
-      <main className="mx-auto w-full max-w-6xl px-6 py-10">
-        <div className="rounded-2xl bg-background p-6 shadow-md">
-          {/* Header */}
-          <div className="flex items-center justify-between pb-4 mb-5 border-b">
-            <p className="text-xl font-bold">Event Management</p>
-            <Button onClick={() => setShowCreate(true)}>
-              <CalendarPlus className="h-4 w-4 mr-2" />
-              Create Event
-            </Button>
-          </div>
+    <AdminPagePanel>
+      <AdminPageHeader
+        eyebrow="Event roster"
+        title="Events"
+        actions={
+          <Button className="rounded-xl" onClick={() => setShowCreate(true)}>
+            <CalendarPlus className="mr-2 h-4 w-4" />
+            Create event
+          </Button>
+        }
+        stats={[
+          { label: "Total events", value: totalEvents, hint: "Published and draft" },
+          { label: "Published on page", value: publishedCount, hint: "Current page load" },
+          { label: "Companies linked", value: companiesCount, hint: "Current page load" },
+          { label: "Registrations", value: registrationsCount, hint: "Current page load" },
+        ]}
+      />
 
-          {/* Table */}
-          {loading ? (
-            <div className="py-16 text-center text-sm text-muted-foreground">Loading…</div>
-          ) : events.length === 0 ? (
-            <div className="py-16 text-center text-sm text-muted-foreground">No events found.</div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="py-3 text-left font-medium text-muted-foreground w-[22%]">Name</th>
-                  <th className="py-3 text-left font-medium text-muted-foreground w-[14%]">Location</th>
-                  <th className="py-3 text-left font-medium text-muted-foreground w-[11%]">Start</th>
-                  <th className="py-3 text-left font-medium text-muted-foreground w-[11%]">End</th>
-                  <th className="py-3 text-left font-medium text-muted-foreground w-[12%]">Status</th>
-                  <th className="py-3 text-left font-medium text-muted-foreground w-[8%]">Companies</th>
-                  <th className="py-3 text-left font-medium text-muted-foreground w-[8%]">Registrations</th>
-                  <th className="py-3 text-left font-medium text-muted-foreground w-[14%]">Action</th>
+      <AdminToolbar
+        searchValue={query}
+        onSearchChange={setQuery}
+        searchPlaceholder="Search by event name, location, or description"
+        summary={`Showing ${filteredEvents.length} of ${events.length} loaded events on this page.`}
+      />
+
+      <AdminTableWrapper>
+        {loading ? (
+          <AdminLoadingState label="Loading event roster..." />
+        ) : filteredEvents.length === 0 ? (
+          <AdminEmptyState
+            title={query ? "No matching events" : "No events found"}
+            description={
+              query
+                ? "Try a broader name or location query."
+                : "Create an event to start building the admin event flow."
+            }
+          />
+        ) : (
+          <>
+            <AdminTable>
+              <AdminTableHead>
+                <tr>
+                  <AdminTableHeaderCell className="w-[34%]">Event</AdminTableHeaderCell>
+                  <AdminTableHeaderCell className="w-[14%]">Status</AdminTableHeaderCell>
+                  <AdminTableHeaderCell className="w-[14%]">Date</AdminTableHeaderCell>
+                  <AdminTableHeaderCell className="w-[12%]">Companies</AdminTableHeaderCell>
+                  <AdminTableHeaderCell className="w-[12%]">Registrations</AdminTableHeaderCell>
+                  <AdminTableHeaderCell className="w-[14%] text-right">Details</AdminTableHeaderCell>
                 </tr>
-              </thead>
-              <tbody>
-                {events.map(event => (
-                  <tr key={event.id} className="border-b last:border-0">
-                    <td className="py-3 pr-4 font-medium">{event.name}</td>
-                    <td className="py-3 pr-4 text-muted-foreground">{event.location}</td>
-                    <td className="py-3 pr-4 text-muted-foreground">{formatDate(event.startDate)}</td>
-                    <td className="py-3 pr-4 text-muted-foreground">{formatDate(event.endDate)}</td>
-                    <td className="py-3 pr-4">
-                      <Badge variant={event.isPublished ? "default" : "outline"}>
+              </AdminTableHead>
+              <AdminTableBody>
+                {filteredEvents.map(event => (
+                  <AdminTableRow key={event.id}>
+                    <AdminTableCell className="text-slate-950">
+                      <AdminPrimaryCell title={event.name} subtitle={event.location} />
+                    </AdminTableCell>
+                    <AdminTableCell>
+                      <Badge variant="outline" className={cn("rounded-full px-2.5 py-1 text-xs font-medium", publishBadgeClassName(event.isPublished))}>
                         {event.isPublished ? "Published" : "Draft"}
                       </Badge>
-                    </td>
-                    <td className="py-3 pr-4 text-muted-foreground">{event._count.companies}</td>
-                    <td className="py-3 pr-4 text-muted-foreground">{event._count.registrations}</td>
-                    <td className="py-3">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => togglePublish(event)}
-                          disabled={publishing === event.id}
-                          className="text-xs px-2 py-0.5 rounded border border-input hover:bg-muted transition-colors disabled:opacity-40"
-                          title={event.isPublished ? "Unpublish" : "Publish"}
-                        >
-                          {event.isPublished ? "Unpublish" : "Publish"}
-                        </button>
-                        <button
-                          onClick={() => setEditEvent(event)}
-                          className="hover:text-muted-foreground transition-colors"
-                          aria-label="Edit"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => setDeleteEvent(event)}
-                          className="text-destructive hover:text-destructive/70 transition-colors"
-                          aria-label="Delete"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                    </AdminTableCell>
+                    <AdminTableCell>
+                      <div className="space-y-1">
+                        <p>{formatDate(event.startDate)}</p>
+                        <p className="text-xs text-slate-500">to {formatDate(event.endDate)}</p>
                       </div>
-                    </td>
-                  </tr>
+                    </AdminTableCell>
+                    <AdminTableCell>{event._count.companies}</AdminTableCell>
+                    <AdminTableCell>{event._count.registrations}</AdminTableCell>
+                    <AdminTableCell className="text-right">
+                      <Button asChild variant="outline" size="sm" className="rounded-xl border-slate-200">
+                        <Link href={`/admin/events/${event.id}`}>
+                          See details
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        </Link>
+                      </Button>
+                    </AdminTableCell>
+                  </AdminTableRow>
                 ))}
-              </tbody>
-            </table>
-          )}
+              </AdminTableBody>
+            </AdminTable>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-end gap-1 mt-6">
-              <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-3 py-1.5 text-sm disabled:opacity-40 hover:text-muted-foreground transition-colors"
-              >
-                Previous
-              </button>
-              {pages.map((item, idx) =>
-                item === "..." ? (
-                  <span key={`dots-${idx}`} className="px-2 py-1.5 text-sm text-muted-foreground">…</span>
-                ) : (
-                  <button
-                    key={item}
-                    onClick={() => setPage(item)}
-                    className={`w-8 h-8 rounded-md text-sm font-medium transition-colors ${
-                      item === page ? "bg-foreground text-background" : "hover:bg-muted"
-                    }`}
-                  >
-                    {item}
-                  </button>
-                )
-              )}
-              <button
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="px-3 py-1.5 text-sm disabled:opacity-40 hover:text-muted-foreground transition-colors"
-              >
-                Next
-              </button>
-            </div>
-          )}
-        </div>
-      </main>
+            <AdminMobileList>
+              {filteredEvents.map(event => (
+                <AdminMobileCard key={event.id}>
+                  <div className="space-y-1">
+                    <p className="text-base font-semibold text-slate-950">{event.name}</p>
+                    <p className="text-sm text-slate-500">{event.location}</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Badge variant="outline" className={cn("rounded-full px-2.5 py-1 text-xs font-medium", publishBadgeClassName(event.isPublished))}>
+                      {event.isPublished ? "Published" : "Draft"}
+                    </Badge>
+                    <span className="text-sm text-slate-500">{formatDate(event.startDate)}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-sm text-slate-600">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Companies</p>
+                      <p className="mt-1">{event._count.companies}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Registrations</p>
+                      <p className="mt-1">{event._count.registrations}</p>
+                    </div>
+                  </div>
+                  <Button asChild variant="outline" size="sm" className="rounded-xl border-slate-200">
+                    <Link href={`/admin/events/${event.id}`}>
+                      See details
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </Button>
+                </AdminMobileCard>
+              ))}
+            </AdminMobileList>
+          </>
+        )}
+      </AdminTableWrapper>
+
+      <AdminPagination page={page} totalPages={totalPages} pages={pages} onPageChange={setPage} />
 
       {showCreate && (
         <CreateModal
@@ -215,26 +239,6 @@ export function EventManagementPage() {
           }}
         />
       )}
-      {editEvent && (
-        <EditModal
-          event={editEvent}
-          onClose={() => setEditEvent(null)}
-          onUpdated={() => {
-            setEditEvent(null);
-            fetchEvents(page);
-          }}
-        />
-      )}
-      {deleteEvent && (
-        <DeleteModal
-          event={deleteEvent}
-          onClose={() => setDeleteEvent(null)}
-          onDeleted={() => {
-            setDeleteEvent(null);
-            fetchEvents(page);
-          }}
-        />
-      )}
-    </div>
+    </AdminPagePanel>
   );
 }

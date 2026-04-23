@@ -30,7 +30,7 @@ export async function apiFetch<T>(path: string, options: FetchOptions = {}): Pro
     credentials: "include",
   });
 
-  if (response.status === 401 && typeof window !== "undefined") {
+  if (response.status === 401 && typeof window !== "undefined" && !path.startsWith("/auth/")) {
     clearUserInfo();
     window.location.href = "/signin";
   }

@@ -1,13 +1,36 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Pencil, Trash2, UserPlus, X } from "lucide-react";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowRight, UserPlus } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import {
+  AdminDialog,
+  AdminEmptyState,
+  AdminLoadingState,
+  AdminMobileCard,
+  AdminMobileList,
+  AdminPageHeader,
+  AdminPagePanel,
+  AdminPagination,
+  AdminPrimaryCell,
+  AdminTable,
+  AdminTableBody,
+  AdminTableCell,
+  AdminTableHead,
+  AdminTableHeaderCell,
+  AdminTableRow,
+  AdminTableWrapper,
+  AdminToolbar,
+  adminInputClassName,
+  adminSelectClassName,
+} from "@/components/admin/admin-ui";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import type { ApiResponse } from "@/types/api";
 
 type AdminUser = {
@@ -27,6 +50,8 @@ type AccountsPayload = {
   limit: number;
   totalPages: number;
 };
+
+type CreateForm = { name: string; email: string; password: string; role: "jobSeeker" | "companyUser" };
 
 const ROLE_LABELS: Record<string, string> = {
   jobSeeker: "Participant",
@@ -50,9 +75,7 @@ function buildPages(page: number, total: number): (number | "...")[] {
   if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
   const items: (number | "...")[] = [1];
   if (page > 3) items.push("...");
-  for (let i = Math.max(2, page - 1); i <= Math.min(total - 1, page + 1); i++) {
-    items.push(i);
-  }
+  for (let i = Math.max(2, page - 1); i <= Math.min(total - 1, page + 1); i++) items.push(i);
   if (page < total - 2) items.push("...");
   items.push(total);
   return items;
@@ -64,9 +87,11 @@ function extractErrorMessage(err: unknown, fallback: string) {
     : fallback;
 }
 
-// ── Create Modal ──────────────────────────────────────────────────────────────
-
-type CreateForm = { name: string; email: string; password: string; role: "jobSeeker" | "companyUser" };
+function roleBadgeClassName(role: AdminUser["role"]) {
+  if (role === "systemAdmin") return "border-slate-900 bg-slate-900 text-white";
+  if (role === "companyUser") return "border-slate-200 bg-slate-100 text-slate-700";
+  return "border-sky-200 bg-sky-50 text-sky-700";
+}
 
 function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const [form, setForm] = useState<CreateForm>({ name: "", email: "", password: "", role: "jobSeeker" });
@@ -77,180 +102,86 @@ function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
     setSaving(true);
     try {
       await api.post("/admin/accounts", form);
-      toast.success("User created");
+      toast.success("Account created");
       onCreated();
     } catch (err) {
-      toast.error(extractErrorMessage(err, "Failed to create user"));
+      toast.error(extractErrorMessage(err, "Failed to create account"));
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="rounded-2xl bg-background p-6 shadow-md w-full max-w-md mx-4">
-        <div className="flex items-center justify-between pb-4 mb-5 border-b">
-          <p className="text-lg font-bold">Create User</p>
-          <button onClick={onClose} className="hover:text-muted-foreground transition-colors">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div>
-            <Label className="mb-1.5">Name</Label>
-            <Input required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+    <AdminDialog
+      title="Create account"
+      description="Create a participant or company account, then continue editing it from the dedicated detail page."
+      onClose={onClose}
+    >
+      <form onSubmit={handleSubmit} className="space-y-4 px-5 py-5 sm:px-6 sm:py-6">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <Label className="mb-2 block text-sm font-medium text-slate-700">Name</Label>
+            <Input
+              required
+              value={form.name}
+              onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              className={cn("h-11 rounded-xl", adminInputClassName)}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <Label className="mb-2 block text-sm font-medium text-slate-700">Email</Label>
+            <Input
+              required
+              type="email"
+              value={form.email}
+              onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+              className={cn("h-11 rounded-xl", adminInputClassName)}
+            />
           </div>
           <div>
-            <Label className="mb-1.5">Email</Label>
-            <Input required type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
+            <Label className="mb-2 block text-sm font-medium text-slate-700">Password</Label>
+            <Input
+              required
+              type="password"
+              value={form.password}
+              onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+              className={cn("h-11 rounded-xl", adminInputClassName)}
+            />
           </div>
           <div>
-            <Label className="mb-1.5">Password</Label>
-            <Input required type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />
-          </div>
-          <div>
-            <Label className="mb-1.5">Role</Label>
+            <Label className="mb-2 block text-sm font-medium text-slate-700">Role</Label>
             <select
               value={form.role}
-              onChange={e => setForm(f => ({ ...f, role: e.target.value as "jobSeeker" | "companyUser" }))}
-              className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+              onChange={e => setForm(f => ({ ...f, role: e.target.value as CreateForm["role"] }))}
+              className={adminSelectClassName}
             >
               <option value="jobSeeker">Participant</option>
               <option value="companyUser">Company</option>
             </select>
           </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={saving}>{saving ? "Creating…" : "Create"}</Button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-// ── Edit Modal ────────────────────────────────────────────────────────────────
-
-type EditForm = { name: string; email: string; phone: string; password: string };
-
-function EditModal({ user, onClose, onUpdated }: { user: AdminUser; onClose: () => void; onUpdated: () => void }) {
-  const [form, setForm] = useState<EditForm>({
-    name: user.name,
-    email: user.email,
-    phone: user.phone ?? "",
-    password: "",
-  });
-  const [saving, setSaving] = useState(false);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      const body: Record<string, string> = { name: form.name, email: form.email, phone: form.phone };
-      if (form.password) body.password = form.password;
-      await api.put(`/admin/accounts/${user.id}`, body);
-      toast.success("User updated");
-      onUpdated();
-    } catch (err) {
-      toast.error(extractErrorMessage(err, "Failed to update user"));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="rounded-2xl bg-background p-6 shadow-md w-full max-w-md mx-4">
-        <div className="flex items-center justify-between pb-4 mb-5 border-b">
-          <p className="text-lg font-bold">Edit User</p>
-          <button onClick={onClose} className="hover:text-muted-foreground transition-colors">
-            <X className="h-4 w-4" />
-          </button>
         </div>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div>
-            <Label className="mb-1.5">Name</Label>
-            <Input required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
-          </div>
-          <div>
-            <Label className="mb-1.5">Email</Label>
-            <Input required type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
-          </div>
-          <div>
-            <Label className="mb-1.5">Phone</Label>
-            <Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="Optional" />
-          </div>
-          <div>
-            <Label className="mb-1.5">New Password</Label>
-            <Input
-              type="password"
-              value={form.password}
-              onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-              placeholder="Leave blank to keep current"
-            />
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
 
-// ── Delete Modal ──────────────────────────────────────────────────────────────
-
-function DeleteModal({ user, onClose, onDeleted }: { user: AdminUser; onClose: () => void; onDeleted: () => void }) {
-  const [deleting, setDeleting] = useState(false);
-
-  async function handleDelete() {
-    setDeleting(true);
-    try {
-      await api.delete(`/admin/accounts/${user.id}`);
-      toast.success("User deleted");
-      onDeleted();
-    } catch (err) {
-      toast.error(extractErrorMessage(err, "Failed to delete user"));
-    } finally {
-      setDeleting(false);
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="rounded-2xl bg-background p-6 shadow-md w-full max-w-sm mx-4">
-        <div className="flex items-center justify-between pb-4 mb-5 border-b">
-          <p className="text-lg font-bold">Delete User</p>
-          <button onClick={onClose} className="hover:text-muted-foreground transition-colors">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <p className="text-sm text-muted-foreground mb-6">
-          Delete <span className="font-medium text-foreground">{user.name}</span>? This cannot be undone.
-        </p>
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
-            {deleting ? "Deleting…" : "Delete"}
+        <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
+          <Button type="button" variant="outline" className="rounded-xl border-slate-200" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" className="rounded-xl" disabled={saving}>
+            {saving ? "Creating..." : "Create account"}
           </Button>
         </div>
-      </div>
-    </div>
+      </form>
+    </AdminDialog>
   );
 }
-
-// ── Main Page ─────────────────────────────────────────────────────────────────
 
 export function UserManagementPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
   const [loading, setLoading] = useState(true);
-
+  const [query, setQuery] = useState("");
   const [showCreate, setShowCreate] = useState(false);
-  const [editUser, setEditUser] = useState<AdminUser | null>(null);
-  const [deleteUser, setDeleteUser] = useState<AdminUser | null>(null);
 
   const fetchUsers = useCallback(async (p: number) => {
     setLoading(true);
@@ -260,6 +191,7 @@ export function UserManagementPage() {
       });
       setUsers(res.data.data);
       setTotalPages(res.data.totalPages);
+      setTotalUsers(res.data.total);
     } catch {
       toast.error("Failed to load users");
     } finally {
@@ -271,110 +203,126 @@ export function UserManagementPage() {
     fetchUsers(page);
   }, [fetchUsers, page]);
 
+  const filteredUsers = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) return users;
+
+    return users.filter(user =>
+      [user.name, user.email, user.phone ?? "", ROLE_LABELS[user.role] ?? user.role]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalized),
+    );
+  }, [query, users]);
+
   const pages = buildPages(page, totalPages);
+  const adminCount = users.filter(user => user.role === "systemAdmin").length;
+  const participantCount = users.filter(user => user.role === "jobSeeker").length;
+  const companyCount = users.filter(user => user.role === "companyUser").length;
 
   return (
-    <div className="flex min-h-screen flex-col bg-muted/30">
-      <main className="mx-auto w-full max-w-6xl px-6 py-10">
-        <div className="rounded-2xl bg-background p-6 shadow-md">
-          {/* Header */}
-          <div className="flex items-center justify-between pb-4 mb-5 border-b">
-            <p className="text-xl font-bold">User Management</p>
-            <Button onClick={() => setShowCreate(true)}>
-              <UserPlus className="h-4 w-4 mr-2" />
-              Create User
-            </Button>
-          </div>
+    <AdminPagePanel>
+      <AdminPageHeader
+        eyebrow="Account directory"
+        title="Users"
+        actions={
+          <Button className="rounded-xl" onClick={() => setShowCreate(true)}>
+            <UserPlus className="mr-2 h-4 w-4" />
+            Create account
+          </Button>
+        }
+        stats={[
+          { label: "Total accounts", value: totalUsers, hint: "Across all roles" },
+          { label: "Participants", value: participantCount, hint: "Visible on this page" },
+          { label: "Company users", value: companyCount, hint: "Visible on this page" },
+          { label: "Admins", value: adminCount, hint: "Internal operators" },
+        ]}
+      />
 
-          {/* Table */}
-          {loading ? (
-            <div className="py-16 text-center text-sm text-muted-foreground">Loading…</div>
-          ) : users.length === 0 ? (
-            <div className="py-16 text-center text-sm text-muted-foreground">No users found.</div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="py-3 text-left font-medium text-muted-foreground w-[18%]">Name</th>
-                  <th className="py-3 text-left font-medium text-muted-foreground w-[22%]">Email</th>
-                  <th className="py-3 text-left font-medium text-muted-foreground w-[13%]">Role</th>
-                  <th className="py-3 text-left font-medium text-muted-foreground w-[20%]">Created Date</th>
-                  <th className="py-3 text-left font-medium text-muted-foreground w-[20%]">Last Updated</th>
-                  <th className="py-3 text-left font-medium text-muted-foreground w-[7%]">Action</th>
+      <AdminToolbar
+        searchValue={query}
+        onSearchChange={setQuery}
+        searchPlaceholder="Search by name, email, phone, or role"
+        summary={`Showing ${filteredUsers.length} of ${users.length} loaded records on this page.`}
+      />
+
+      <AdminTableWrapper>
+        {loading ? (
+          <AdminLoadingState label="Loading account data..." />
+        ) : filteredUsers.length === 0 ? (
+          <AdminEmptyState
+            title={query ? "No matching accounts" : "No users found"}
+            description={
+              query
+                ? "Try a different name, email, or role to widen the results."
+                : "New accounts will appear here as soon as they are created."
+            }
+          />
+        ) : (
+          <>
+            <AdminTable>
+              <AdminTableHead>
+                <tr>
+                  <AdminTableHeaderCell className="w-[34%]">Account</AdminTableHeaderCell>
+                  <AdminTableHeaderCell className="w-[16%]">Role</AdminTableHeaderCell>
+                  <AdminTableHeaderCell className="w-[18%]">Contact</AdminTableHeaderCell>
+                  <AdminTableHeaderCell className="w-[16%]">Updated</AdminTableHeaderCell>
+                  <AdminTableHeaderCell className="w-[16%] text-right">Details</AdminTableHeaderCell>
                 </tr>
-              </thead>
-              <tbody>
-                {users.map(user => (
-                  <tr key={user.id} className="border-b last:border-0">
-                    <td className="py-3 pr-4 font-medium">{user.name}</td>
-                    <td className="py-3 pr-4 text-muted-foreground">{user.email}</td>
-                    <td className="py-3 pr-4">
-                      <Badge variant="outline">{ROLE_LABELS[user.role] ?? user.role}</Badge>
-                    </td>
-                    <td className="py-3 pr-4 text-muted-foreground">{formatDate(user.createdAt)}</td>
-                    <td className="py-3 pr-4 text-muted-foreground">{formatDate(user.updatedAt)}</td>
-                    <td className="py-3">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setEditUser(user)}
-                          className="hover:text-muted-foreground transition-colors"
-                          aria-label="Edit"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => setDeleteUser(user)}
-                          className="text-destructive hover:text-destructive/70 transition-colors"
-                          aria-label="Delete"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+              </AdminTableHead>
+              <AdminTableBody>
+                {filteredUsers.map(user => (
+                  <AdminTableRow key={user.id}>
+                    <AdminTableCell className="text-slate-950">
+                      <AdminPrimaryCell title={user.name} subtitle={user.email} />
+                    </AdminTableCell>
+                    <AdminTableCell>
+                      <Badge variant="outline" className={cn("rounded-full px-2.5 py-1 text-xs font-medium", roleBadgeClassName(user.role))}>
+                        {ROLE_LABELS[user.role] ?? user.role}
+                      </Badge>
+                    </AdminTableCell>
+                    <AdminTableCell>{user.phone || "No phone"}</AdminTableCell>
+                    <AdminTableCell>{formatDate(user.updatedAt)}</AdminTableCell>
+                    <AdminTableCell className="text-right">
+                      <Button asChild variant="outline" size="sm" className="rounded-xl border-slate-200">
+                        <Link href={`/admin/users/${user.id}`}>
+                          See details
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        </Link>
+                      </Button>
+                    </AdminTableCell>
+                  </AdminTableRow>
                 ))}
-              </tbody>
-            </table>
-          )}
+              </AdminTableBody>
+            </AdminTable>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-end gap-1 mt-6">
-              <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-3 py-1.5 text-sm disabled:opacity-40 hover:text-muted-foreground transition-colors"
-              >
-                Previous
-              </button>
-              {pages.map((item, idx) =>
-                item === "..." ? (
-                  <span key={`dots-${idx}`} className="px-2 py-1.5 text-sm text-muted-foreground">
-                    …
-                  </span>
-                ) : (
-                  <button
-                    key={item}
-                    onClick={() => setPage(item)}
-                    className={`w-8 h-8 rounded-md text-sm font-medium transition-colors ${
-                      item === page ? "bg-foreground text-background" : "hover:bg-muted"
-                    }`}
-                  >
-                    {item}
-                  </button>
-                )
-              )}
-              <button
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="px-3 py-1.5 text-sm disabled:opacity-40 hover:text-muted-foreground transition-colors"
-              >
-                Next
-              </button>
-            </div>
-          )}
-        </div>
-      </main>
+            <AdminMobileList>
+              {filteredUsers.map(user => (
+                <AdminMobileCard key={user.id}>
+                  <div className="space-y-1">
+                    <p className="text-base font-semibold text-slate-950">{user.name}</p>
+                    <p className="text-sm text-slate-500">{user.email}</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Badge variant="outline" className={cn("rounded-full px-2.5 py-1 text-xs font-medium", roleBadgeClassName(user.role))}>
+                      {ROLE_LABELS[user.role] ?? user.role}
+                    </Badge>
+                    <span className="text-sm text-slate-500">{user.phone || "No phone"}</span>
+                  </div>
+                  <Button asChild variant="outline" size="sm" className="rounded-xl border-slate-200">
+                    <Link href={`/admin/users/${user.id}`}>
+                      See details
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </Button>
+                </AdminMobileCard>
+              ))}
+            </AdminMobileList>
+          </>
+        )}
+      </AdminTableWrapper>
+
+      <AdminPagination page={page} totalPages={totalPages} pages={pages} onPageChange={setPage} />
 
       {showCreate && (
         <CreateModal
@@ -385,26 +333,6 @@ export function UserManagementPage() {
           }}
         />
       )}
-      {editUser && (
-        <EditModal
-          user={editUser}
-          onClose={() => setEditUser(null)}
-          onUpdated={() => {
-            setEditUser(null);
-            fetchUsers(page);
-          }}
-        />
-      )}
-      {deleteUser && (
-        <DeleteModal
-          user={deleteUser}
-          onClose={() => setDeleteUser(null)}
-          onDeleted={() => {
-            setDeleteUser(null);
-            fetchUsers(page);
-          }}
-        />
-      )}
-    </div>
+    </AdminPagePanel>
   );
 }

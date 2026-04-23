@@ -303,7 +303,7 @@ export function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto w-full max-w-screen-2xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch xl:gap-8">
           {/* Sidebar */}
           <aside className="flex w-full shrink-0 flex-col gap-4 lg:w-72 xl:w-80">
