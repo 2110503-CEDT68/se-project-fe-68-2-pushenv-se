@@ -2,40 +2,18 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { ConfirmModal } from "@/components/shared/ConfirmModal";
 import { X, Search } from "lucide-react";
 import { toast } from "sonner";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
 } from "@/components/ui/form";
 import { api } from "@/lib/api";
 import type { ApiResponse } from "@/types/api";
 import { AdminEvent } from "./types";
 import { extractErrorMessage, toDateInput } from "./utils";
-
-// ── General Info Schemas ──────────────────────────────────────────────────────
-
-const eventFormSchema = z.object({
-  name: z.string().min(1, "Event name is required"),
-  location: z.string().min(1, "Location is required"),
-  description: z.string().min(5, "Description must be at least 5 characters"),
-  startDate: z.string().min(1, "Start Date is required"),
-  endDate: z.string().min(1, "End Date is required"),
-}).refine(data => new Date(data.endDate) >= new Date(data.startDate), {
-  message: "End date cannot be before start date",
-  path: ["endDate"]
-});
-
-type EventFormValues = z.infer<typeof eventFormSchema>;
+import { EventFormFields, type EventFormValues, useEventForm } from "./EventFormFields";
 
 type CompanySearchResult = {
   id: string;
@@ -52,15 +30,12 @@ type EventCompany = {
 // ── Component: Edit Event General Info ────────────────────────────────────────
 
 function EditEventGeneralInfo({ event, onClose, onUpdated }: Readonly<{ event: AdminEvent; onClose: () => void; onUpdated: () => void }>) {
-  const form = useForm<EventFormValues>({
-    resolver: zodResolver(eventFormSchema),
-    defaultValues: {
-      name: event.name,
-      location: event.location,
-      description: event.description,
-      startDate: toDateInput(event.startDate),
-      endDate: toDateInput(event.endDate),
-    },
+  const form = useEventForm({
+    name: event.name,
+    location: event.location,
+    description: event.description,
+    startDate: toDateInput(event.startDate),
+    endDate: toDateInput(event.endDate),
   });
 
   async function onSubmit(values: EventFormValues) {
@@ -77,69 +52,7 @@ function EditEventGeneralInfo({ event, onClose, onUpdated }: Readonly<{ event: A
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 h-full">
         <div className="flex-col gap-4 flex flex-1">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Name</FormLabel>
-                <FormControl><Input {...field} /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="location"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Location</FormLabel>
-                <FormControl><Input {...field} /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Description</FormLabel>
-                <FormControl>
-                  <textarea
-                    {...field}
-                    rows={3}
-                    className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring resize-none"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="startDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Start Date</FormLabel>
-                  <FormControl><Input type="date" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="endDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>End Date</FormLabel>
-                  <FormControl><Input type="date" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+          <EventFormFields form={form} />
         </div>
         <div className="flex justify-end gap-2 pt-4 mt-2 shrink-0">
           <Button type="button" variant="outline" onClick={onClose}>Close</Button>

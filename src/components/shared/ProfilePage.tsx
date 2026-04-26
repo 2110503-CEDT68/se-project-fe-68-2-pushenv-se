@@ -10,6 +10,7 @@ import { api } from "@/lib/api";
 import { clearUserInfo } from "@/lib/auth";
 import type { ApiResponse } from "@/types/api";
 import { CompanyProfileSection } from "@/components/shared/CompanyProfile";
+import { ProfileField, ProfileSection } from "@/components/shared/profile/ProfilePrimitives";
 
 type UserProfile = {
   id: string;
@@ -177,37 +178,6 @@ function useDeleteAccount() {
   return { deleting, showModal, setShowModal, handleDelete };
 }
 
-// ── Sub-components ──────────────────────────────────────────────────────────
-
-function Section({ icon, title, subtitle, action, children }: Readonly<{
-  icon: React.ReactNode; title: string; subtitle?: string; action?: React.ReactNode; children: React.ReactNode;
-}>) {
-  return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/60">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white border border-slate-200 shadow-sm text-slate-600">{icon}</div>
-          <div>
-            <p className="text-sm font-semibold text-slate-800">{title}</p>
-            {subtitle && <p className="text-xs text-slate-400">{subtitle}</p>}
-          </div>
-        </div>
-        {action}
-      </div>
-      <div className="px-6 py-5">{children}</div>
-    </div>
-  );
-}
-
-function Field({ label, children }: Readonly<{ label: string; children: React.ReactNode }>) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">{label}</label>
-      {children}
-    </div>
-  );
-}
-
 function DeleteAccountModal({ onClose, onDelete, deleting }: Readonly<{ onClose: () => void; onDelete: () => void; deleting: boolean }>) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
@@ -285,7 +255,7 @@ function PersonalInfoSection({ profile, name, phone, setName, setPhone, infoEdit
   };
 
   return (
-    <Section icon={<User className="h-4 w-4" />} title="Personal Information"
+    <ProfileSection icon={<User className="h-4 w-4" />} title="Personal Information"
       action={infoEditor.editing ? (
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={cancelEdit}>Cancel</Button>
@@ -294,21 +264,21 @@ function PersonalInfoSection({ profile, name, phone, setName, setPhone, infoEdit
       ) : <Button size="sm" variant="outline" onClick={() => infoEditor.setEditing(true)}><Pencil className="h-3.5 w-3.5 mr-1.5" />Edit</Button>}
     >
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-        <Field label="Full Name">
+        <ProfileField label="Full Name">
           {infoEditor.editing ? <Input value={name} onChange={(e) => setName(e.target.value)} /> : <p className="text-sm font-medium text-slate-900">{profile.name}</p>}
-        </Field>
-        <Field label="Email"><p className="text-sm font-medium text-slate-900">{profile.email}</p></Field>
-        <Field label="Phone">
+        </ProfileField>
+        <ProfileField label="Email"><p className="text-sm font-medium text-slate-900">{profile.email}</p></ProfileField>
+        <ProfileField label="Phone">
           {infoEditor.editing ? <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 (555) 000-0000" /> : <p className="text-sm font-medium text-slate-900">{profile.phone ?? "—"}</p>}
-        </Field>
+        </ProfileField>
       </div>
-    </Section>
+    </ProfileSection>
   );
 }
 
 function PasswordSection({ passEditor }: Readonly<{ passEditor: ReturnType<typeof usePasswordEditor> }>) {
   return (
-    <Section icon={<KeyRound className="h-4 w-4" />} title="Password" subtitle="Update your login password"
+    <ProfileSection icon={<KeyRound className="h-4 w-4" />} title="Password" subtitle="Update your login password"
       action={passEditor.editing ? (
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={passEditor.reset}>Cancel</Button>
@@ -317,17 +287,17 @@ function PasswordSection({ passEditor }: Readonly<{ passEditor: ReturnType<typeo
       ) : <Button size="sm" variant="outline" onClick={() => passEditor.setEditing(true)}><Pencil className="h-3.5 w-3.5 mr-1.5" />Change</Button>}
     >
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-        <Field label="Current Password"><Input type="password" placeholder="••••••••" value={passEditor.currentPassword} onChange={(e) => passEditor.setCurrentPassword(e.target.value)} disabled={!passEditor.editing} /></Field>
-        <Field label="New Password"><Input type="password" placeholder="••••••••" value={passEditor.newPassword} onChange={(e) => passEditor.setNewPassword(e.target.value)} disabled={!passEditor.editing} /></Field>
-        <Field label="Confirm New Password"><Input type="password" placeholder="••••••••" value={passEditor.confirmPassword} onChange={(e) => passEditor.setConfirmPassword(e.target.value)} disabled={!passEditor.editing} /></Field>
+        <ProfileField label="Current Password"><Input type="password" placeholder="••••••••" value={passEditor.currentPassword} onChange={(e) => passEditor.setCurrentPassword(e.target.value)} disabled={!passEditor.editing} /></ProfileField>
+        <ProfileField label="New Password"><Input type="password" placeholder="••••••••" value={passEditor.newPassword} onChange={(e) => passEditor.setNewPassword(e.target.value)} disabled={!passEditor.editing} /></ProfileField>
+        <ProfileField label="Confirm New Password"><Input type="password" placeholder="••••••••" value={passEditor.confirmPassword} onChange={(e) => passEditor.setConfirmPassword(e.target.value)} disabled={!passEditor.editing} /></ProfileField>
       </div>
-    </Section>
+    </ProfileSection>
   );
 }
 
 function DangerZoneSection({ onDelete, deleting }: Readonly<{ onDelete: () => void; deleting: boolean }>) {
   return (
-    <Section icon={<Trash2 className="h-4 w-4 text-red-500" />} title="Danger Zone" subtitle="Permanent and irreversible actions">
+    <ProfileSection icon={<Trash2 className="h-4 w-4 text-red-500" />} title="Danger Zone" subtitle="Permanent and irreversible actions">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-slate-800">Delete your account</p>
@@ -335,7 +305,7 @@ function DangerZoneSection({ onDelete, deleting }: Readonly<{ onDelete: () => vo
         </div>
         <Button variant="destructive" size="sm" onClick={onDelete} disabled={deleting} className="shrink-0 ml-4">Delete Account</Button>
       </div>
-    </Section>
+    </ProfileSection>
   );
 }
 
