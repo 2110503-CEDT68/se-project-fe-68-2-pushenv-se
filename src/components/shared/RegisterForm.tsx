@@ -72,7 +72,7 @@ export function RegisterForm() {
         role: "jobSeeker",
       });
 
-      toast.success("Registration successful! Please login.");
+      toast.success("Registration successful!");
       router.push("/signin");
     } catch (err: unknown) {
       const errorObj = err as { statusCode?: number; message?: string };
