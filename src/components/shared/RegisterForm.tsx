@@ -168,7 +168,7 @@ export function RegisterForm() {
                     <input
                       id="consent-checkbox"
                       type="checkbox"
-                      disabled={!mounted ? undefined : policyIsUnread}
+                      disabled={mounted ? policyIsUnread : undefined}
                       className="h-4 w-4 shrink-0 rounded-sm border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 mt-1 accent-primary"
                       checked={field.value === true}
                       onChange={(e) => field.onChange(e.target.checked)}

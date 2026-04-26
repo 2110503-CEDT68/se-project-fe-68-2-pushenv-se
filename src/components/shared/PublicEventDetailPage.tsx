@@ -41,10 +41,12 @@ function RegisterPanel({
   saving: boolean;
   handleRegister: () => void;
 }>) {
-  if (!accessLoaded || registrationStatusLoading) {
+  const accessIsLoading = accessLoaded === false;
+
+  if (accessIsLoading || registrationStatusLoading) {
     return (
       <Button disabled className="w-full rounded-full opacity-60">
-        {!accessLoaded ? "Checking access…" : "Checking status…"}
+        {accessIsLoading ? "Checking access…" : "Checking status…"}
       </Button>
     );
   }
