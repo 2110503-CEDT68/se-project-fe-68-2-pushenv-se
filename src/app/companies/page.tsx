@@ -18,7 +18,7 @@ const SORT_OPTIONS = [
 function CompaniesExplorer() {
   const searchParams = useSearchParams();
 
-  const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+  const page = Math.max(1, Number.parseInt(searchParams.get("page") || "1", 10));
   const sortParam = searchParams.get("sort") || "newest";
   const searchParam = searchParams.get("search") || "";
   const view = searchParams.get("view") === "table" ? "table" : "card";
