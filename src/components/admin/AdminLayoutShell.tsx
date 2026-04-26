@@ -14,7 +14,7 @@ const adminLinks = [
   { href: "/admin/events", label: "Events", icon: CalendarRange },
 ];
 
-function SidebarContent({ pathname, onNavClick, onLogout }: { pathname: string; onNavClick?: () => void; onLogout: () => void }) {
+function SidebarContent({ pathname, onNavClick, onLogout }: Readonly<{ pathname: string; onNavClick?: () => void; onLogout: () => void }>) {
   return (
     <>
       <div className="flex items-center gap-2.5 border-b border-white/[0.07] px-5 py-[18px]">

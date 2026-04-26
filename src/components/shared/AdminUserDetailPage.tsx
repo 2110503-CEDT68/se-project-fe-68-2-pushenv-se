@@ -79,7 +79,7 @@ function extractErrorMessage(err: unknown, fallback: string) {
     : fallback;
 }
 
-function InitialAvatar({ name, role }: { name: string; role: AdminAccountDetail["role"] }) {
+function InitialAvatar({ name, role }: Readonly<{ name: string; role: AdminAccountDetail["role"] }>) {
   const initial = name.trim()[0]?.toUpperCase() ?? "?";
   let bg = "bg-sky-100 text-sky-700";
   if (role === "systemAdmin" || role === "companyUser") {
@@ -92,7 +92,7 @@ function InitialAvatar({ name, role }: { name: string; role: AdminAccountDetail[
   );
 }
 
-export function AdminUserDetailPage({ userId }: { userId: string }) {
+export function AdminUserDetailPage({ userId }: Readonly<{ userId: string }>) {
   const [user, setUser] = useState<AdminAccountDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

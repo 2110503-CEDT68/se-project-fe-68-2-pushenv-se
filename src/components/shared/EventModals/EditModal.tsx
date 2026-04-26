@@ -322,7 +322,7 @@ function EditEventCompanies({ event, onClose, onUpdated }: { event: AdminEvent; 
       <ConfirmModal
         open={!!confirmRemoveId}
         onClose={() => setConfirmRemoveId(null)}
-        onConfirm={() => handleRemoveCompany(confirmRemoveId!)}
+        onConfirm={() => { if (confirmRemoveId) handleRemoveCompany(confirmRemoveId); }}
         title="Remove company"
         description="Remove this company from the event? They will no longer appear as a participant."
         confirmLabel="Remove"

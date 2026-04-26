@@ -36,7 +36,7 @@ import type { ApiResponse } from "@/types/api";
 function CompanyList({
   companies,
   onRemove,
-}: {
+}: Readonly<{
   companies: Array<{
     companyId: string;
     company: {
@@ -48,7 +48,7 @@ function CompanyList({
     };
   }>;
   onRemove: (companyId: string) => void;
-}) {
+}>) {
   const [filter, setFilter] = useState("");
   const filtered = filter
     ? companies.filter(
@@ -154,7 +154,7 @@ function formatDateInput(value: string) {
   return new Date(value).toISOString().slice(0, 10);
 }
 
-export function AdminEventDetailPage({ eventId }: { eventId: string }) {
+export function AdminEventDetailPage({ eventId }: Readonly<{ eventId: string }>) {
   const [event, setEvent] = useState<AdminEventDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -384,9 +384,7 @@ export function AdminEventDetailPage({ eventId }: { eventId: string }) {
               </span>
             </div>
             <div className="px-5 py-5">
-              {!event.registrations.length ? (
-                <p className="text-sm text-slate-500">No registrations yet.</p>
-              ) : (
+              {event.registrations.length ? (
                 <div className="space-y-1.5">
                   {event.registrations.map(registration => (
                     <Link
@@ -404,6 +402,8 @@ export function AdminEventDetailPage({ eventId }: { eventId: string }) {
                     </Link>
                   ))}
                 </div>
+              ) : (
+                <p className="text-sm text-slate-500">No registrations yet.</p>
               )}
             </div>
           </AdminPagePanel>
@@ -537,7 +537,7 @@ export function AdminEventDetailPage({ eventId }: { eventId: string }) {
       <ConfirmModal
         open={!!confirmRemoveId}
         onClose={() => setConfirmRemoveId(null)}
-        onConfirm={() => handleRemoveCompany(confirmRemoveId!)}
+        onConfirm={() => { if (confirmRemoveId) handleRemoveCompany(confirmRemoveId); }}
         title="Remove company"
         description="Remove this company from the event? They will no longer appear as a participant."
         confirmLabel="Remove"
