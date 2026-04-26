@@ -155,7 +155,7 @@ function useDeleteAccount() {
     try {
       await api.delete("/users/me");
       clearUserInfo();
-      window.location.href = "/";
+      globalThis.window.location.href = "/";
     } catch (err) {
       toast.error(getErrorMessage(err, "Delete account failed"));
       setDeleting(false);

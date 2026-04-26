@@ -19,7 +19,7 @@ type Props = {
   title?: string;
 };
 
-export function CompanySearchModal({ open, onClose, onSelect, excludeIds = [], title = "Add company" }: Props) {
+export function CompanySearchModal({ open, onClose, onSelect, excludeIds = [], title = "Add company" }: Readonly<Props>) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Company[]>([]);
   const [searching, setSearching] = useState(false);

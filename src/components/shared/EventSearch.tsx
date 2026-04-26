@@ -7,7 +7,7 @@ interface EventSearchProps {
   basePath?: string;
 }
 
-export default function EventSearch({ basePath = "/events" }: EventSearchProps) {
+export default function EventSearch({ basePath = "/events" }: Readonly<EventSearchProps>) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("search") || "");

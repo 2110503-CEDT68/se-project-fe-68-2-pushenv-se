@@ -233,7 +233,7 @@ export function AdminEventDetailPage({ eventId }: { eventId: string }) {
     try {
       await api.delete(`/admin/events/${eventId}`);
       toast.success("Event deleted");
-      window.location.href = "/admin/events";
+      globalThis.window.location.href = "/admin/events";
     } catch (err) {
       toast.error(extractErrorMessage(err, "Failed to delete event"));
       setDeleting(false);

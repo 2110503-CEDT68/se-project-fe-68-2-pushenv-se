@@ -45,7 +45,7 @@ export default function Pagination({
   limit,
   currentPage,
   basePath = "/events",
-}: PaginationProps) {
+}: Readonly<PaginationProps>) {
   const router = useRouter();
   const searchParams = useSearchParams();
 

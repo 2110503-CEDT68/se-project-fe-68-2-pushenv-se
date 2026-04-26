@@ -18,7 +18,7 @@ export default function CompanyDetailPage({
   const { company, loading, error } = useCompany(id);
 
   useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    globalThis.window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   }, [id]);
 
   const [eventsSearch, setEventsSearch] = useState("");

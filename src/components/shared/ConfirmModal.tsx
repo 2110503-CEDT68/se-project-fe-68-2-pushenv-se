@@ -21,7 +21,7 @@ export function ConfirmModal({
   description,
   confirmLabel = "Confirm",
   variant = "danger",
-}: Props) {
+}: Readonly<Props>) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {

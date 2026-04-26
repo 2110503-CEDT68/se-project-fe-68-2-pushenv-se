@@ -147,7 +147,7 @@ export function AdminUserDetailPage({ userId }: { userId: string }) {
     try {
       await api.delete(`/admin/accounts/${userId}`);
       toast.success("Account deleted");
-      window.location.href = "/admin/users";
+      globalThis.window.location.href = "/admin/users";
     } catch (err) {
       toast.error(extractErrorMessage(err, "Failed to delete account"));
       setDeleting(false);

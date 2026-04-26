@@ -98,7 +98,7 @@ export function AdminCompanyDetailPage({ companyId }: { companyId: string }) {
     try {
       await api.delete(`/admin/accounts/${company.companyUserId}`);
       toast.success("Company deleted");
-      window.location.href = "/admin/companies";
+      globalThis.window.location.href = "/admin/companies";
     } catch (err) {
       const message =
         err && typeof err === "object" && "message" in err

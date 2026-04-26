@@ -81,7 +81,7 @@ function SidebarContent({ pathname, onNavClick, onLogout }: { pathname: string; 
   );
 }
 
-export function AdminLayoutShell({ children }: { children: React.ReactNode }) {
+export function AdminLayoutShell({ children }: Readonly<{ children: React.ReactNode }>) {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);

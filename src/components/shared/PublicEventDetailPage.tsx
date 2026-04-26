@@ -143,7 +143,7 @@ export function PublicEventDetailPage({ eventId }: { eventId: string }) {
   }, [event, companiesSearch, companiesSort]);
 
   useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    globalThis.window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   }, [eventId]);
 
   useEffect(() => {
